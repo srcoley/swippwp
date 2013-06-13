@@ -24,7 +24,7 @@
 	 * Helper function for defining variables for the current page 
 	 * 
 	 * @return array 
-	 */  
+	 */
 	function swipp_get_settings() {  
 			
 		$output = array();  
@@ -92,6 +92,24 @@
 			array('') 
 		);
 
+		add_settings_field(   
+			'swipp_user_guid_hidden',                      // ID used to identify the field throughout the theme 
+			'',                           // The label to the left of the option interface element 
+			'swipp_user_guid_hidden_callback',   // The name of the function responsible for rendering the option interface 
+			'swipp-settings',    // The page on which this option will be displayed 
+			'swipp_settings_section',         // The name of the section to which this field belongs 
+			array('') 
+		);
+
+		add_settings_field(   
+			'swipp_org_id_hidden',                      // ID used to identify the field throughout the theme 
+			'',                           // The label to the left of the option interface element 
+			'swipp_org_id_hidden_callback',   // The name of the function responsible for rendering the option interface 
+			'swipp-settings',    // The page on which this option will be displayed 
+			'swipp_settings_section',         // The name of the section to which this field belongs 
+			array('') 
+		);
+
 		register_setting('swipp-settings', 'swipp-settings');
 	}
 
@@ -113,7 +131,7 @@
 
 	function swipp_account_token_hidden_callback($args) { 
 		$options = get_option('swipp-settings'); 
-		if($options['swipp_account_token_hidden'] == '') {
+		if($options['swipp_account_token_hidden'] == $options['swipp_account_token_hidden']/*''*/) {
 			$html = '<input type="hidden" id="swipp_account_token_hidden" name="swipp-settings[swipp_account_token_hidden]" value="'.$options['swipp_account_token_hidden'].'" />';  
 			$html .= '<input type="text" style="width: 350px;" id="swipp_account_token" class="hidden" readonly value="'.$options['swipp_account_token_hidden'].'" />';  
 			$html .= '<input type="button" id="swipp_sign_up" class="button" value="Sign Up To Generate" />';
@@ -125,69 +143,76 @@
 		echo $html; 
 	}
 
+	function swipp_user_guid_hidden_callback($args) { 
+		$html = '<input type="hidden" id="swipp_user_guid_hidden" name="swipp-settings[swipp_user_guid_hidden]" value="'.$options['swipp_user_guid_hidden'].'" />';  
+		$html .= '<label for="swipp_user_guid_hidden"> '  . $args[0] . '</label>';
+		echo $html; 
+	}
+
+	function swipp_org_id_hidden_callback($args) { 
+		$html = '<input type="hidden" id="swipp_org_id_hidden" name="swipp-settings[swipp_org_id_hidden]" value="'.$options['swipp_org_id_hidden'].'" />';  
+		$html .= '<label for="swipp_org_id_hidden"> '  . $args[0] . '</label>';
+		echo $html; 
+	}
+
 	function swipp_settings_desc_callback() {
 		return;
 	}
 
-/* Define the custom box */
+	/* Define the custom box */
 
-add_action( 'add_meta_boxes', 'myplugin_add_custom_box' );
+	add_action('add_meta_boxes', 'swipp_add_custom_box');
+	add_action('save_post', 'swipp_save_postdata');
 
-// backwards compatible (before WP 3.0)
-// add_action( 'admin_init', 'myplugin_add_custom_box', 1 );
+	/* Adds a box to the main column on the Post and Page edit screens */
+	function swipp_add_custom_box() {
+		 add_meta_box('swipp_sectionid', 'Swipp Details', 'swipp_inner_custom_box', 'post', 'side', 'low');
+	}
 
-/* Do something with the data entered */
-add_action( 'save_post', 'myplugin_save_postdata' );
+	/* Prints the box content */
+	function swipp_inner_custom_box( $post ) {
 
-/* Adds a box to the main column on the Post and Page edit screens */
-function myplugin_add_custom_box() {
-    add_meta_box('myplugin_sectionid', 'Swipp Details', 'myplugin_inner_custom_box', 'post', 'side', 'low');
-}
+	  // Use nonce for verification
+	  wp_nonce_field( plugin_basename( __FILE__ ), 'swipp_noncename' );
 
-/* Prints the box content */
-function myplugin_inner_custom_box( $post ) {
+	  // The actual fields for data entry
+	  // Use get_post_meta to retrieve an existing value from the database and use the value for the form
+	  $value = get_post_meta( $post->ID, 'swipp_term', true );
+	  echo '<label for="swipp_new_term">';
+			 _e("Swipp Topic", 'swipp_textdomain' );
+	  echo '</label> ';
+	  echo '<input type="text" id="swipp_new_term" name="swipp_new_term" value="'.esc_attr($value).'" size="25" />';
+	}
 
-  // Use nonce for verification
-  wp_nonce_field( plugin_basename( __FILE__ ), 'myplugin_noncename' );
+	/* When the post is saved, saves our custom data */
+	function swipp_save_postdata( $post_id ) {
 
-  // The actual fields for data entry
-  // Use get_post_meta to retrieve an existing value from the database and use the value for the form
-  $value = get_post_meta( $post->ID, '_my_meta_value_key', true );
-  echo '<label for="myplugin_new_field">';
-       _e("Swipp Topic", 'myplugin_textdomain' );
-  echo '</label> ';
-  echo '<input type="text" id="myplugin_new_field" name="myplugin_new_field" value="'.esc_attr($value).'" size="25" />';
-}
+	  // First we need to check if the current user is authorised to do this action. 
+	  if ( 'page' == $_POST['post_type'] ) {
+		 if ( ! current_user_can( 'edit_page', $post_id ) )
+			  return;
+	  } else {
+		 if ( ! current_user_can( 'edit_post', $post_id ) )
+			  return;
+	  }
 
-/* When the post is saved, saves our custom data */
-function myplugin_save_postdata( $post_id ) {
+	  // Secondly we need to check if the user intended to change this value.
+	  if ( ! isset( $_POST['swipp_noncename'] ) || ! wp_verify_nonce( $_POST['swipp_noncename'], plugin_basename( __FILE__ ) ) )
+			return;
 
-  // First we need to check if the current user is authorised to do this action. 
-  if ( 'page' == $_POST['post_type'] ) {
-    if ( ! current_user_can( 'edit_page', $post_id ) )
-        return;
-  } else {
-    if ( ! current_user_can( 'edit_post', $post_id ) )
-        return;
-  }
+	  // Thirdly we can save the value to the database
 
-  // Secondly we need to check if the user intended to change this value.
-  if ( ! isset( $_POST['myplugin_noncename'] ) || ! wp_verify_nonce( $_POST['myplugin_noncename'], plugin_basename( __FILE__ ) ) )
-      return;
+	  //if saving in a custom table, get post_ID
+	  $post_ID = $_POST['post_ID'];
+	  //sanitize user input
+	  $mydata = sanitize_text_field( $_POST['swipp_new_term'] );
 
-  // Thirdly we can save the value to the database
-
-  //if saving in a custom table, get post_ID
-  $post_ID = $_POST['post_ID'];
-  //sanitize user input
-  $mydata = sanitize_text_field( $_POST['myplugin_new_field'] );
-
-  // Do something with $mydata 
-  // either using 
-  add_post_meta($post_ID, '_my_meta_value_key', $mydata, true) or
-    update_post_meta($post_ID, '_my_meta_value_key', $mydata);
-  // or a custom table (see Further Reading section below)
-}
+	  // Do something with $mydata 
+	  // either using 
+	  add_post_meta($post_ID, 'swipp_term', $mydata, true) or
+		 update_post_meta($post_ID, 'swipp_term', $mydata);
+	  // or a custom table (see Further Reading section below)
+	}
 
 
 
@@ -212,9 +237,12 @@ function myplugin_save_postdata( $post_id ) {
 				<?php settings_fields('swipp-settings'); ?> 
             <?php do_settings_sections('swipp-settings'); ?>          
             <?php submit_button(); ?> 
-				<!--<p class="submit">
-					<input name="Submit" type="submit" class="button-primary" value="<?php esc_attr_e('Save Changes','swipp_textdomain'); ?>" />  
-				</p>-->
+				<?php
+					$swipp_settings = get_option('swipp-settings');
+					echo "<pre>";
+					print_r($swipp_settings);
+					echo "</pre>";
+				?>
 			</form>  
 		</div><!-- wrap -->  
 	<?php }

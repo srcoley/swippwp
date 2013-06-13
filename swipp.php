@@ -22,8 +22,15 @@
 	*/
 
 	$GLOBALS['SWIPP_PLUGIN_PATH'] = plugins_url('', __FILE__);
-	
-	
+
+	/**
+	 * Start swipp plugin
+	 *
+	 * - Include settings file
+	 * - Define constants
+	 * - Add actions, filters, shortcodes
+	 * - Register scripts
+	 */
 	function swipp_init() {
 		if(is_admin()) {
 			require_once('swipp-settings.php');
@@ -34,11 +41,21 @@
 			add_filter('manage_posts_columns', 'add_swipp_column');
 			add_action('manage_posts_custom_column', 'swipp_columns', 10, 2);
 
-			wp_register_script('swipp-admin-js', plugins_url( '/swippAdmin.js', __FILE__ ), array('jquery'), false, true);
+			/* ajax listeners */
+			add_action('wp_ajax_swipp_sign_up', 'swipp_sign_up_callback');
+			add_action('wp_ajax_swipp_sign_in', 'swipp_sign_in_callback');
+			add_action('wp_ajax_swipp_check_org', 'swipp_check_org_callback');
+
+			wp_register_script('swipp-admin-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/swippAdmin.js', array('jquery'), false, true);
+		} else {
+			add_shortcode('swippjs', 'swipp_js');
 		}
 	}
 	add_action('init', 'swipp_init');
 
+	/**
+	 * The swippjs shortcode output
+	 */
 	function swipp_js( $atts ) {
 		extract( shortcode_atts( array(
 			'option_a' => 'true',
@@ -46,12 +63,17 @@
 		), $atts ) );
 		return "<script type='text/javascript'>alert('Swipp');</script>";
 	}
-	add_shortcode( 'swippjs', 'swipp_js' );
 
+	/**
+	 * Adds a Swipp column header to the All Posts table
+	 */
 	function add_swipp_column($columns) {
 		return array_merge( $columns, array('swipp' => __('Swipp')) );
 	}
 
+	/**
+	 * Adds a Swipp column value to the All Posts table
+	 */
 	function swipp_columns( $column, $post_id ) {
 		switch ( $column ) {
 			case 'swipp' :
@@ -61,6 +83,9 @@
 		}
 	}
 
+	/**
+	 * Puts an Add Swipp button to the content editor
+	 */
 	function add_swipp_button($context) {
 
 		//path to my icon
@@ -75,6 +100,9 @@
 		return $context;
 	}
 
+	/**
+	 * Content for the Add Swipp popup
+	 */
 	function add_inline_swipp_content() { ?>
 		<div id="swipp_popup" style="display:none;">
 			<h2>Add Swipp Options</h2>
@@ -82,8 +110,16 @@
 	<?php }
 
 
-	/* Ajax Callbacks */
 
+
+
+	/********************
+	 * Ajax callbacks
+	 ********************/
+
+	/**
+	 * Swipp API: usersignup
+	 */
 	function swipp_sign_up_callback(){
 		$payload = array();
 
@@ -95,25 +131,26 @@
 			}
 		}
 		if(array_key_exists('accountType', $payload) && array_key_exists('emailAddress', $payload) && array_key_exists('accountToken', $payload)) {
-			$uri = "http://rest.swippeng.com/user/usersignup?appId=" . SWIPP_APP_ID . "&appToken=" . SWIPP_APP_TOKEN;
-			$date = gmdate(DATE_RFC822);
-			$header = array();
-			$header[] = "Date: $date";
-			$header[] = "Content-Type: application/json";
+			$uri		= "http://rest.swippeng.com/user/usersignup?appId=" . SWIPP_APP_ID . "&appToken=" . SWIPP_APP_TOKEN;
+			$date		= gmdate(DATE_RFC822);
+			$header	= array("Date: $date", "Content-Type: application/json");
+
 			$body = json_encode(array(
 				"accountType" => $payload['accountType'],
 				"emailAddress" => $payload['emailAddress'],
 				"accountToken" => $payload['accountToken']
 			));
 
-			echo curlRequest($uri, $header, "POST", $body);
+			echo json_encode(curlRequest($uri, $header, "POST", $body));
 		} else {
 			echo "Missing require parameters.";
 		}
 		die();
 	}
-	add_action('wp_ajax_swipp_sign_up', 'swipp_sign_up_callback');
 
+	/**
+	 * Swipp API: usersignin
+	 */
 	function swipp_sign_in_callback(){
 		$payload = array();
 
@@ -125,45 +162,87 @@
 			}
 		}
 		if(array_key_exists('accountType', $payload) && array_key_exists('emailAddress', $payload) && array_key_exists('accountToken', $payload)) {
-			$uri = "http://rest.swippeng.com/user/usersignin?appId=" . SWIPP_APP_ID . "&appToken=" . SWIPP_APP_TOKEN;
-			$date = gmdate(DATE_RFC822);
-			$header = array();
-			$header[] = "Date: $date";
-			$header[] = "Content-Type: application/json";
-			$body = json_encode(array(
-				"accountType" => $payload['accountType'],
-				"emailAddress" => $payload['emailAddress'],
+			$uri			= "http://rest.swippeng.com/user/usersignin?appId=" . SWIPP_APP_ID . "&appToken=" . SWIPP_APP_TOKEN;
+			$date			= gmdate(DATE_RFC822);
+			$header		= array("Date: $date", "Content-Type: application/json");
+
+			$body	= json_encode(array(
+				"accountType"	=> $payload['accountType'],
+				"emailAddress"	=> $payload['emailAddress'],
 				"accountToken" => $payload['accountToken']
 			));
 
-			echo curlRequest($uri, $header, "PUT", $body);
+			$ret = curlRequest($uri, $header, "PUT", $body);
+			$swipp_settings = get_option('swipp-settings');
+			$swipp_settings['swipp_account_token_hidden'] = $ret['response']->signInOutput->accessToken;
+			$swipp_settings['swipp_user_guid_hidden'] = $ret['response']->signInOutput->userGuid;
+			update_option('swipp-settings', $swipp_settings);
+			echo json_encode($ret);
 		} else {
 			echo "Missing required parameters.";
 		}
 		die();
 	}
-	add_action('wp_ajax_swipp_sign_in', 'swipp_sign_in_callback');
 
 
+	/**
+	 * Swipp API: widget/orgaccount
+	 */
+	function swipp_check_org_callback(){
 
-function curlRequest($uri,$header,$method,$body) {
+		$swipp_settings	= get_option('swipp-settings');
+		$user_guid			= base64_encode($swipp_settings['swipp_user_guid_hidden']);
+		$access_token		= base64_encode($swipp_settings['swipp_account_token_hidden']);
+		
+		$uri		= "http://rest.swippeng.com/widget/orgaccount?userGuid=" . $user_guid . "&accessToken=" . $access_token;
+		$date		= gmdate(DATE_RFC822);
+		$header	= array("Date: $date", "Content-Type: application/json");
 
-	$ch = curl_init($uri);
-	curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-	curl_setopt($ch, CURLOPT_USERAGENT, "swipp-wp-plugin/0.0.1");
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-	curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-	if ($body !== null) {
-		curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-		$ret = json_encode(array(
-			'response'	=> json_decode(curl_exec($ch)),
-			'status'		=> curl_getinfo($ch, CURLINFO_HTTP_CODE)
-		));
-	} else {
-		return array('status' => 0);
+		$ret = curlRequest($uri, $header, 'GET', null);
+		if($ret['response']->orgAccountDetails->length <= 0) {
+			$body = json_encode(array("companyName" => get_bloginfo('name')));
+			$ret = curlRequest($uri, $header, 'POST', $body);
+		}
+		$swipp_settings = get_option('swipp-settings');
+		$swipp_settings['swipp_org_id_hidden'] = $ret['response']->orgAccountDetails.id;
+		update_option('swipp-settings', $swipp_settings);
+		echo json_encode($ret);
+		die();
 	}
-	return $ret;
-}
+
+
+
+
+
+	/********************
+	 * Miscellaneous
+	 ********************/
+
+	/**
+	 *	cURL Wrapper reused and streamlined from
+	 *	Swipp uriRequestCore.php
+	 */
+	function curlRequest($uri,$header,$method,$body) {
+
+		$ch = curl_init($uri);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+		curl_setopt($ch, CURLOPT_USERAGENT, "swipp-wp-plugin/0.0.1");
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+		if ($body !== null) {
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+			$ret = array(
+				'response'	=> json_decode(curl_exec($ch)),
+				'status'		=> curl_getinfo($ch, CURLINFO_HTTP_CODE)
+			);
+		} else {
+			$ret = array(
+				'response'	=> json_decode(curl_exec($ch)),
+				'status'		=> curl_getinfo($ch, CURLINFO_HTTP_CODE)
+			);
+		}
+		return $ret;
+	}
 
 
 ?>

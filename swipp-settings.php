@@ -177,10 +177,11 @@
 
 	  // The actual fields for data entry
 	  // Use get_post_meta to retrieve an existing value from the database and use the value for the form
-	  $value = get_post_meta( $post->ID, 'widget_detail', true );
-		echo "<pre>";
-		print_r(json_decode($value, true)['response']['widgetTermDetail']);
-		echo "</pre>";
+		if($value = get_post_meta( $post->ID, 'widget_detail', true )) {
+			echo "<pre>";
+			print_r(json_decode($value, true)['response']['widgetTermDetail']);
+			echo "</pre>";
+		}
 	  /*echo '<label for="swipp_new_term">';
 			 _e("Swipp Topic", 'swipp_textdomain' );
 	  echo '</label> ';

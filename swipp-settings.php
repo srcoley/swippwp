@@ -13,7 +13,7 @@
 		 // add_theme_page( $page_title, $menu_title, $capability, $menu_slug, $function);  
 		 //$swipp_settings_page = add_theme_page(__('Swipp Options'), __('Swipp Options','swipp_textdomain'), 'manage_options', SWIPP_PAGE_BASENAME, 'swipp_settings_page_fn');            
 		 $swipp_settings_page = add_menu_page(__('Swipp'), __('Swipp','swipp_textdomain'), 'manage_options', SWIPP_PAGE_BASENAME, 'swipp_settings_page_fn', $GLOBALS['SWIPP_PLUGIN_PATH'].'/images/swipp_16x16.png');          
-		 add_action('admin_print_scripts-' . $swipp_settings_page, 'swipp_admin_scripts');
+		 add_action('admin_enqueue_scripts', 'swipp_admin_scripts');
 	}
 
 	function swipp_admin_scripts() {
@@ -177,11 +177,15 @@
 
 	  // The actual fields for data entry
 	  // Use get_post_meta to retrieve an existing value from the database and use the value for the form
-	  $value = get_post_meta( $post->ID, 'swipp_term', true );
-	  echo '<label for="swipp_new_term">';
+	  $value = get_post_meta( $post->ID, 'widget_detail', true );
+		echo "<pre>";
+		print_r(json_decode($value, true)['response']['widgetTermDetail']);
+		echo "</pre>";
+	  /*echo '<label for="swipp_new_term">';
 			 _e("Swipp Topic", 'swipp_textdomain' );
 	  echo '</label> ';
-	  echo '<input type="text" id="swipp_new_term" name="swipp_new_term" value="'.esc_attr($value).'" size="25" />';
+	  echo '<input type="text" id="swipp_new_term" name="swipp_new_term" value="'.esc_attr($value).'" size="25" />';*/
+	  
 	}
 
 	/* When the post is saved, saves our custom data */
@@ -209,8 +213,8 @@
 
 	  // Do something with $mydata 
 	  // either using 
-	  add_post_meta($post_ID, 'swipp_term', $mydata, true) or
-		 update_post_meta($post_ID, 'swipp_term', $mydata);
+	  /*add_post_meta($post_ID, 'swipp_term', $mydata, true) or
+		  update_post_meta($post_ID, 'swipp_term', $mydata);*/
 	  // or a custom table (see Further Reading section below)
 	}
 

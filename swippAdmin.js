@@ -19,7 +19,51 @@ jQuery(document).ready(function($) {
 		e.preventDefault();
 	});
 
+
+	/*$("#swipp_add_swipp").on('click', function(e){
+		alert('test1');
+		//swippPopupJs();
+		e.preventDefault();
+	});*/
+
+	$("#swipp_create_widget").on('click', function(e){
+		var swippTermInput = $('#swipp_select_term');
+		if(swippTermInput.val() != '') {
+			var swippTerm = swippTermInput.val();
+			var postId = $('#post_ID').val();
+			var orgTermPayload = {
+				'action'	: 'swipp_org_term',
+				'term'	: swippTerm,
+				'post_id'	: postId
+			}
+			swippApiCall(orgTermPayload, function(data){
+				data = $.parseJSON(data);
+				if(data.status == 200) {
+					console.log('Term: ' + data.response.termId);
+					swippCreateWidget(postId, data.response.termId);
+				} else {
+					alert('Failed Request');
+				}
+				console.log(data);
+			});
+		} else {
+			alert('Invalid Term');
+		}
+		e.preventDefault();
+	});
+
 });
+
+
+/**
+ * Popup js
+ */
+function swippPopupJs(){
+	jQuery("#swipp_create_widget").on('click', function(e){
+		alert('test2');
+		e.preventDefault();
+	});
+}
 
 
 /**
@@ -73,6 +117,25 @@ function swippCheckOrg(payload){
 		var orgId = (data.response.length > 0) ? data.response.orgAccountDetails.id : data.response.accountId;
 		jQuery("#swipp_org_id_hidden").val(orgId);
 		
+	});
+}
+
+/**
+ * Swipp create widget
+ */
+function swippCreateWidget(postId, termId){
+	var payload = {
+		'action': 'swipp_create_widget',
+		'post_id': postId,
+		'term_id': termId
+	}
+	swippApiCall(payload, function(data){
+		console.log(jQuery.parseJSON(data));
+		//console.log(data);
+		jQuery('#swippInfoDiv').html("Widget created. Update or refresh the page to show API results.");
+		/*var payload2 = {
+			'action
+		}*/
 	});
 }
 

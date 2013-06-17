@@ -45,6 +45,8 @@
 			add_action('wp_ajax_swipp_sign_up', 'swipp_sign_up_callback');
 			add_action('wp_ajax_swipp_sign_in', 'swipp_sign_in_callback');
 			add_action('wp_ajax_swipp_check_org', 'swipp_check_org_callback');
+			add_action('wp_ajax_swipp_org_term', 'swipp_org_term_callback');
+			add_action('wp_ajax_swipp_create_widget', 'swipp_create_widget_callback');
 
 			wp_register_script('swipp-admin-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/swippAdmin.js', array('jquery'), false, true);
 		} else {
@@ -93,7 +95,7 @@
 		//our popup's title
 		$title = 'Add Swipp';
 		//append the icon
-		$context .= "<a title='{$title}' class='thickbox button' href='#TB_inline?width=400&inlineId=swipp_popup'>";
+		$context .= "<a id='swipp_add_swipp' title='{$title}' class='thickbox button' href='#TB_inline?width=400&inlineId=swipp_popup'>";
 		$context .= "<img style=\"margin: -2px 0 0 0; padding: 0;\" src=\"$img\" /> Add Swipp";
 		$context .= "</a>";
 
@@ -104,8 +106,19 @@
 	 * Content for the Add Swipp popup
 	 */
 	function add_inline_swipp_content() { ?>
+		<?php
+			$swipp_settings = get_option('swipp-settings');
+		?>
 		<div id="swipp_popup" style="display:none;">
 			<h2>Add Swipp Options</h2>
+			<p>
+				<label for="swipp_select_term">Term: </label>
+				<input type="text" id="swipp_select_term" name="swipp-settings[swipp_select_term]" value="" />
+				<input type="button" id="swipp_create_widget" class="button" value="Create widget with term" />
+			</p>
+			<div id="swippInfoDiv">
+
+			</div>
 		</div>
 	<?php }
 
@@ -210,7 +223,128 @@
 		die();
 	}
 
+	
+	/**
+	 * Swipp API: widget/orgaccount/{orgId}/orguser/orgterm
+	 */
+	function swipp_org_term_callback(){
 
+		$payload = array();
+		$post_id;
+
+		foreach($_POST as $k=>$v) {
+			if(isset($_POST[$k]) && $_POST[$k] != '' && $k != 'action' && $k != 'post_id') {
+				$payload[$k] = $v;
+			} else if($k == 'post_id' && is_numeric($v)) {
+				$post_id = $v;
+			}
+		}
+
+		$swipp_settings	= get_option('swipp-settings');
+		$org_id				= $swipp_settings['swipp_org_id_hidden'];
+		$user_guid			= base64_encode($swipp_settings['swipp_user_guid_hidden']);
+		$access_token		= base64_encode($swipp_settings['swipp_account_token_hidden']);
+		
+		$uri		= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/orgterm?userGuid=$user_guid&accessToken=$access_token";
+		$date		= gmdate(DATE_RFC822);
+		$header	= array("Date: $date", "Content-Type: application/json");
+
+		$ret = curlRequest($uri, $header, 'POST', json_encode($payload));
+		if($ret['status'] == 200) {
+			add_post_meta($post_id, 'swipp_term', trim(' ' . $ret['response']->termId), false);
+		}
+
+		echo json_encode($ret);
+		die();
+	}
+
+
+	function swipp_create_widget_callback(){
+
+		$payload = array();
+		$post_id;
+		$term_id;
+
+		foreach($_POST as $k=>$v) {
+			if(isset($_POST[$k]) && $_POST[$k] != '' && $k != 'action' && $k != 'post_id' && $k != 'term_id') {
+				$payload[$k] = $v;
+			} else if($k == 'post_id' && is_numeric($v)) {
+				$post_id = $v;
+			} else if($k == 'term_id' && $v != '') {
+				$term_id = $v;
+			}
+		}
+
+		$swipp_settings	= get_option('swipp-settings');
+		$org_id				= $swipp_settings['swipp_org_id_hidden'];
+		$user_guid			= base64_encode($swipp_settings['swipp_user_guid_hidden']);
+		$access_token		= base64_encode($swipp_settings['swipp_account_token_hidden']);
+		
+		$uri		= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/widgetkey?userGuid=$user_guid&accessToken=$access_token";
+		$date		= gmdate(DATE_RFC822);
+		$header	= array("Date: $date", "Content-Type: application/json");
+
+		$ret = curlRequest($uri, $header, 'POST', null);
+
+		if($ret['status'] != 200) {
+			echo json_encode(array('error_key' => 'REQUEST_FAILED 1'));
+			die();
+		}
+
+		if(!isset($ret['response']->widgetKey) || $ret['response']->widgetKey == '') {
+			echo json_encode(array('error_key' => 'NO_WIDGET_KEY'));
+			die();
+		}
+
+		$widget_key		= $ret['response']->widgetKey;
+		$uri				= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/widget?userGuid=$user_guid&accessToken=$access_token";
+
+		$body				= json_encode(array(
+								'widgetKey' => $widget_key,
+								'type'		=> 1
+							));
+
+		$ret2 = curlRequest($uri, $header, 'POST', $body);
+
+		if($ret2['status'] != 200) {
+			echo json_encode(array('error_key' => 'REQUEST_FAILED 2'));
+			die();
+		}
+
+		if(!isset($ret2['response']->widgetId) || $ret2['response']->widgetId == '') {
+			echo json_encode(array('error_key' => 'NO_WIDGET_ID'));
+			die();
+		}
+
+		$widget_id			= $ret2['response']->widgetId;
+		$uri					= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/widget/$widget_id/term?userGuid=$user_guid&accessToken=$access_token";
+		$uri_with_term		= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/widget/$widget_id/term?termId=$term_id&userGuid=$user_guid&accessToken=$access_token";
+
+		$ret3 = curlRequest($uri_with_term, $header, 'PUT', null);
+
+		if($ret3['status'] != 200) {
+			echo json_encode(array('error_key' => 'REQUEST_FAILED 3'));
+			die();
+		}
+
+		$ret4 = curlRequest($uri, $header, 'GET', null);
+
+		if($ret4['status'] != 200) {
+			echo json_encode(array('error_key' => 'REQUEST_FAILED 4'));
+			die();
+		}
+
+		$ret4['response'] = (array) $ret4['response'];
+		$ret4['response']['widgetTermDetail'] = (array) $ret4['response']['widgetTermDetail'];
+		$ret4['response']['widgetTermDetail']['termData'] = (array) $ret4['response']['widgetTermDetail']['termData'];
+		$ret4['response']['widgetTermDetail']['termData']['swippTerm'] = (array) $ret4['response']['widgetTermDetail']['termData']['swippTerm'];
+		$term_detail = $ret4['response']['widgetTermDetail']['termData']['swippTerm'];
+
+		add_post_meta($post_id, 'widget_detail', json_encode($ret4), true);
+
+		echo json_encode($ret4);
+		die();
+	}
 
 
 

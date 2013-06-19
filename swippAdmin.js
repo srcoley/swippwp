@@ -20,12 +20,6 @@ jQuery(document).ready(function($) {
 	});
 
 
-	/*$("#swipp_add_swipp").on('click', function(e){
-		alert('test1');
-		//swippPopupJs();
-		e.preventDefault();
-	});*/
-
 	$("#swipp_create_widget").on('click', function(e){
 		var swippTermInput = $('#swipp_select_term');
 		if(swippTermInput.val() != '') {
@@ -55,14 +49,11 @@ jQuery(document).ready(function($) {
 });
 
 
-/**
- * Popup js
- */
-function swippPopupJs(){
-	jQuery("#swipp_create_widget").on('click', function(e){
-		alert('test2');
-		e.preventDefault();
-	});
+function appendText(text) {
+	//Insert content
+	parent.tinyMCE.activeEditor.setContent(parent.tinyMCE.activeEditor.getContent() + text);
+	//Close window
+	parent.jQuery("#TB_closeWindowButton").click();
 }
 
 
@@ -132,7 +123,8 @@ function swippCreateWidget(postId, termId){
 	swippApiCall(payload, function(data){
 		console.log(jQuery.parseJSON(data));
 		//console.log(data);
-		jQuery('#swippInfoDiv').html("Widget created. Update or refresh the page to show API results.");
+		//jQuery('#swippInfoDiv').html("Widget created. Update or refresh the page to show API results.");
+		appendText('[swippjs]');
 		/*var payload2 = {
 			'action
 		}*/

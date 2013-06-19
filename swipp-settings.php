@@ -3,22 +3,15 @@
 	define('SWIPP_SHORTNAME', 'swipp'); // used to prefix the individual setting field id see wptuts_options_page_fields()  
 	define('SWIPP_PAGE_BASENAME', 'swipp-settings'); // the settings page slug
   
-	add_action( 'admin_menu', 'swipp_add_menu' );
 
 	/**
 	 * Add top level menu item
 	 */
 	function swipp_add_menu(){  
 		 // Display Settings Page link under the "Appearance" Admin Menu  
-		 // add_theme_page( $page_title, $menu_title, $capability, $menu_slug, $function);  
-		 //$swipp_settings_page = add_theme_page(__('Swipp Options'), __('Swipp Options','swipp_textdomain'), 'manage_options', SWIPP_PAGE_BASENAME, 'swipp_settings_page_fn');            
 		 $swipp_settings_page = add_menu_page(__('Swipp'), __('Swipp','swipp_textdomain'), 'manage_options', SWIPP_PAGE_BASENAME, 'swipp_settings_page_fn', $GLOBALS['SWIPP_PLUGIN_PATH'].'/images/swipp_16x16.png');          
-		 add_action('admin_enqueue_scripts', 'swipp_admin_scripts');
 	}
 
-	function swipp_admin_scripts() {
-		wp_enqueue_script('swipp-admin-js');
-	}
 
 	/** 
 	 * Helper function for defining variables for the current page 
@@ -177,7 +170,7 @@
 
 	  // The actual fields for data entry
 	  // Use get_post_meta to retrieve an existing value from the database and use the value for the form
-		if($value = get_post_meta( $post->ID, 'widget_detail', true )) {
+		if($value = get_post_meta( $post->ID, 'swipp_widget', true )) {
 			$widget_details = json_decode($value, true);
 			echo "<pre>";
 			print_r($widget_details['response']['widgetTermDetail']);

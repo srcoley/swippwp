@@ -32,14 +32,16 @@
 	 * - Register scripts
 	 */
 	function swipp_init() {
+		define('SWIPP_APP_ID', base64_encode('wp'));
+		define('SWIPP_APP_TOKEN', base64_encode('Jun62013'));
 		if(is_admin()) {
 			require_once('swipp-settings.php');
-			define('SWIPP_APP_ID', base64_encode('wp'));
-			define('SWIPP_APP_TOKEN', base64_encode('Jun62013'));
 			add_action('media_buttons_context', 'add_swipp_button');
 			add_action('admin_footer', 'add_inline_swipp_content');
 			add_filter('manage_posts_columns', 'add_swipp_column');
 			add_action('manage_posts_custom_column', 'swipp_columns', 10, 2);
+			add_action('admin_menu', 'swipp_add_menu');
+			add_action('admin_notices', 'swipp_warning');
 
 			/* ajax listeners */
 			add_action('wp_ajax_swipp_sign_up', 'swipp_sign_up_callback');
@@ -48,22 +50,73 @@
 			add_action('wp_ajax_swipp_org_term', 'swipp_org_term_callback');
 			add_action('wp_ajax_swipp_create_widget', 'swipp_create_widget_callback');
 
-			wp_register_script('swipp-admin-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/swippAdmin.js', array('jquery'), false, true);
+			add_action('admin_enqueue_scripts', 'swipp_widget_assets');
 		} else {
 			add_shortcode('swippjs', 'swipp_js');
+			add_action('wp_enqueue_scripts', 'swipp_widget_assets');
 		}
 	}
 	add_action('init', 'swipp_init');
 
+
+	function swipp_warning() {
+		$options = get_option('swipp-settings'); 
+		if($options['swipp_user_guid_hidden']=="") {
+			echo "<div id='swipp-warning' class='updated fade'><p><strong>";
+			echo __('Swipp is almost ready.');
+			echo "</strong> ";
+			echo sprintf(__('You must <a href="%1$s">authenticate with Swipp</a> for it to work.'), "admin.php?page=swipp-settings");
+			echo "</p></div>";
+		}
+	}
+
 	/**
+	 * Registers Swipp assets for use within WordPress
+	 */
+	function swipp_widget_assets() {
+		if(is_admin()) {
+			wp_register_script('swipp-admin-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/swippAdmin.js', array('jquery'), false, true);
+			wp_enqueue_script('swipp-admin-js');
+		}
+		wp_register_script('swipp-widget-prep-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/swippWidgetPrep.js', array('jquery'), false, true);
+		wp_register_script('swipp-widget-js', 'http://plus.swipp.com/widget/js/swippWidget.js', array('jquery', 'swipp-widget-prep-js'), false, true);
+		wp_register_style('swipp-widget-css', 'http://plus.swipp.com/widget/css/swippWidget.css');
+
+		wp_enqueue_script('swipp-widget-prep-js');
+		wp_enqueue_script('swipp-widget-js');
+		wp_enqueue_style('swipp-widget-css');
+	}
+
+
+	/**
+	 *
 	 * The swippjs shortcode output
 	 */
 	function swipp_js( $atts ) {
+		global $post;
+		$swipp_settings		= get_option('swipp-settings');
+		$swipp_widget			= json_decode(get_post_meta($post->ID, 'swipp_widget', true), true);
+		//$swipp_widget_key		= str_replace('-', '', $swipp_widget['response']['widgetTermDetail']['widgetKey']);
+		$swipp_widget_key		= str_replace('-', '', $swipp_widget['response']['widgetTermDetail']['widgetKey']);
+		$swipp_widget_info	= $swipp_widget['response']['widgetTermDetail']['termData']['swippTerm'];
+		$swipp_app_token		= str_replace('-', '', SWIPP_APP_TOKEN);
+
+		
+		$output =	"<div termid='" . $swipp_widget_info['termId']. "' ";
+		$output .=	"widgetKey='" . $swipp_widget_key . "' ";
+		$output .=	"apptoken='" . $swipp_app_token . "' ";
+		$output .=	"name='swippButton' class='swippButton' ";
+		$output .=	"popupPosition='left' scorePosition='top' ";
+		$output .=	"pictureUrl=''>";
+		$output .=	"</div>";
+
 		extract( shortcode_atts( array(
 			'option_a' => 'true',
 			'option_b' => 'false'
 		), $atts ) );
-		return "<script type='text/javascript'>alert('Swipp');</script>";
+
+		//return "<script type='text/javascript'>alert('" . $post->ID . "');</script>";
+		return $output;
 	}
 
 	/**
@@ -250,8 +303,9 @@
 		$header	= array("Date: $date", "Content-Type: application/json");
 
 		$ret = curlRequest($uri, $header, 'POST', json_encode($payload));
-		if($ret['status'] == 200) {
-			add_post_meta($post_id, 'swipp_term', trim(' ' . $ret['response']->termId), false);
+		if($ret['status'] != 200) {
+			echo json_encode(array('error_key' => 'REQUEST_FAILED'));
+			die();
 		}
 
 		echo json_encode($ret);
@@ -338,9 +392,10 @@
 		$ret4['response']['widgetTermDetail'] = (array) $ret4['response']['widgetTermDetail'];
 		$ret4['response']['widgetTermDetail']['termData'] = (array) $ret4['response']['widgetTermDetail']['termData'];
 		$ret4['response']['widgetTermDetail']['termData']['swippTerm'] = (array) $ret4['response']['widgetTermDetail']['termData']['swippTerm'];
+		$ret4['response']['widgetTermDetail']['widgetKey'] = $widget_key;
 		$term_detail = $ret4['response']['widgetTermDetail']['termData']['swippTerm'];
 
-		add_post_meta($post_id, 'widget_detail', json_encode($ret4), true);
+		add_post_meta($post_id, 'swipp_widget', json_encode($ret4), true);
 
 		echo json_encode($ret4);
 		die();

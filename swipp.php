@@ -76,14 +76,14 @@
 	 */
 	function swipp_widget_assets() {
 		if(is_admin()) {
-			wp_register_script('swipp-admin-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/swippAdmin.js', array('jquery', 'jquery-ui-autocomplete'), false, true);
+			wp_register_script('swipp-admin-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/js/swippAdmin.js', array('jquery', 'jquery-ui-autocomplete'), false, true);
 			wp_register_style('jquery-ui-custom', $GLOBALS['SWIPP_PLUGIN_PATH'].'/css/smoothness/jquery-ui-1.10.3.custom.min.css');
 			wp_enqueue_script('swipp-admin-js');
 			wp_enqueue_style('jquery-ui-custom');
 		}
-		wp_register_script('swipp-widget-prep-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/swippWidgetPrep.js', array('jquery'), false, true);
+		wp_register_script('swipp-widget-prep-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/js/swippWidgetPrep.js', array('jquery'), false, true);
 		wp_register_script('swipp-widget-js', 'http://plus.swipp.com/widget/js/swippWidget.js', array('jquery', 'swipp-widget-prep-js'), false, true);
-		wp_register_style('swipp-widget-custom-css', $GLOBALS['SWIPP_PLUGIN_PATH'].'/swippWidget.css');
+		wp_register_style('swipp-widget-custom-css', $GLOBALS['SWIPP_PLUGIN_PATH'].'/css/swippWidget.css');
 		wp_register_style('swipp-widget-css', 'http://plus.swipp.com/widget/css/swippWidget.css');
 
 		wp_enqueue_script('swipp-widget-prep-js');

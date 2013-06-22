@@ -44,6 +44,7 @@
 			add_action('admin_notices', 'swipp_warning');
 
 			/* ajax listeners */
+			add_action('wp_ajax_swipp_autosuggest', 'swipp_autosuggest_callback');
 			add_action('wp_ajax_swipp_sign_up', 'swipp_sign_up_callback');
 			add_action('wp_ajax_swipp_sign_in', 'swipp_sign_in_callback');
 			add_action('wp_ajax_swipp_check_org', 'swipp_check_org_callback');
@@ -75,15 +76,19 @@
 	 */
 	function swipp_widget_assets() {
 		if(is_admin()) {
-			wp_register_script('swipp-admin-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/swippAdmin.js', array('jquery'), false, true);
+			wp_register_script('swipp-admin-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/swippAdmin.js', array('jquery', 'jquery-ui-autocomplete'), false, true);
+			wp_register_style('jquery-ui-custom', $GLOBALS['SWIPP_PLUGIN_PATH'].'/css/smoothness/jquery-ui-1.10.3.custom.min.css');
 			wp_enqueue_script('swipp-admin-js');
+			wp_enqueue_style('jquery-ui-custom');
 		}
 		wp_register_script('swipp-widget-prep-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/swippWidgetPrep.js', array('jquery'), false, true);
 		wp_register_script('swipp-widget-js', 'http://plus.swipp.com/widget/js/swippWidget.js', array('jquery', 'swipp-widget-prep-js'), false, true);
+		wp_register_style('swipp-widget-custom-css', $GLOBALS['SWIPP_PLUGIN_PATH'].'/swippWidget.css');
 		wp_register_style('swipp-widget-css', 'http://plus.swipp.com/widget/css/swippWidget.css');
 
 		wp_enqueue_script('swipp-widget-prep-js');
 		wp_enqueue_script('swipp-widget-js');
+		wp_enqueue_style('swipp-widget-custom-css');
 		wp_enqueue_style('swipp-widget-css');
 	}
 
@@ -106,7 +111,7 @@
 		$output .=	"widgetKey='" . $swipp_widget_key . "' ";
 		$output .=	"apptoken='" . $swipp_app_token . "' ";
 		$output .=	"name='swippButton' class='swippButton' ";
-		$output .=	"popupPosition='left' scorePosition='top' ";
+		$output .=	"popupPosition='left' scorePosition='right' ";
 		$output .=	"pictureUrl=''>";
 		$output .=	"</div>";
 
@@ -183,10 +188,29 @@
 	 * Ajax callbacks
 	 ********************/
 
+
+	/**
+	 * Swipp API: autofill
+	 */
+	function swipp_autosuggest_callback() {
+		//echo "the term: " . $_POST['term'] . ':' . strlen($_POST['term']);
+		if(isset($_POST['term']) && $_POST['term'] != '' && strlen($_POST['term']) >= 1) {
+			$uri = 'http://search.swipp.com/search/autofill?query=' . urlencode($_POST['term']);
+			$date		= gmdate(DATE_RFC822);
+			$header	= array("Date: $date");
+
+			echo json_encode(curlRequest($uri, $header, "GET", null));
+			die();
+		} else {
+			echo json_encode(array('error_key' => 'INVALID_TERM'));
+			die();
+		}
+	}
+
 	/**
 	 * Swipp API: usersignup
 	 */
-	function swipp_sign_up_callback(){
+	function swipp_sign_up_callback() {
 		$payload = array();
 
 		foreach($_POST as $k=>$v) {
@@ -304,7 +328,7 @@
 
 		$ret = curlRequest($uri, $header, 'POST', json_encode($payload));
 		if($ret['status'] != 200) {
-			echo json_encode(array('error_key' => 'REQUEST_FAILED'));
+			echo json_encode(array('error_key' => 'REQUEST_FAILED', 'response' => $ret['response'], 'status' => 200));
 			die();
 		}
 
@@ -377,7 +401,7 @@
 		$ret3 = curlRequest($uri_with_term, $header, 'PUT', null);
 
 		if($ret3['status'] != 200) {
-			echo json_encode(array('error_key' => 'REQUEST_FAILED 3'));
+			echo json_encode(array('error_key' => 'REQUEST_FAILED 3', 'response' => $ret3['response']));
 			die();
 		}
 
@@ -395,7 +419,7 @@
 		$ret4['response']['widgetTermDetail']['widgetKey'] = $widget_key;
 		$term_detail = $ret4['response']['widgetTermDetail']['termData']['swippTerm'];
 
-		add_post_meta($post_id, 'swipp_widget', json_encode($ret4), true);
+		update_post_meta($post_id, 'swipp_widget', json_encode($ret4));
 
 		echo json_encode($ret4);
 		die();
@@ -415,7 +439,6 @@
 
 		$ch = curl_init($uri);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-		curl_setopt($ch, CURLOPT_USERAGENT, "swipp-wp-plugin/0.0.1");
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
 		if ($body !== null) {

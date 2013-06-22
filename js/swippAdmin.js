@@ -2,6 +2,9 @@ var emailAddress;
 var userToken;
 jQuery(document).ready(function($) {
 
+	/**
+	 * Sign Up Event Handler
+	 */
 	$("#swipp_sign_up").on('click', function(e){
 		emailAddress = ($('#swipp_user_email').val().length > 0) ? $('#swipp_user_email').val() : false;
 		userToken = ($('#swipp_user_token').val().length > 0) ? $('#swipp_user_token').val() : false;
@@ -20,6 +23,9 @@ jQuery(document).ready(function($) {
 	});
 
 
+	/**
+	 * Create Widget Event Handler
+	 */
 	$("#swipp_create_widget").on('click', function(e){
 		var swippTermInput = $('#swipp_select_term');
 		if(swippTermInput.val() != '') {
@@ -33,12 +39,10 @@ jQuery(document).ready(function($) {
 			swippApiCall(orgTermPayload, function(data){
 				data = $.parseJSON(data);
 				if(data.status == 200) {
-					console.log('Term: ' + data.response.termId);
 					swippCreateWidget(postId, data.response.termId);
 				} else {
 					alert('Failed Request');
 				}
-				console.log(data);
 			});
 		} else {
 			alert('Invalid Term');
@@ -46,12 +50,39 @@ jQuery(document).ready(function($) {
 		e.preventDefault();
 	});
 
+
+	/**
+	 * Term Select Event Handler
+	 */
+	$("#swipp_select_term").on("keyup", function(e){
+		var autosuggest = $(this);
+
+		jQuery('#swipp_select_term').autocomplete({ minLength: 1 });
+		var payload = {
+			'action'	: 'swipp_autosuggest',
+			'term'		: autosuggest.val()
+		}
+		swippApiCall(payload, function(data){
+			var data = $.parseJSON(data);
+			var suggestions = [];
+			jQuery.each(data.response.searchOutput.terms.terms, function(i, e) {
+				suggestions.push(e.name);
+				jQuery('#swipp_select_term').autocomplete('option', 'source', suggestions);
+			});
+		});
+	});
+
 });
 
 
-function appendText(text) {
+/**
+ * Append text to the content editor
+ */
+function swippAppendText(text) {
 	//Insert content
-	parent.tinyMCE.activeEditor.setContent(parent.tinyMCE.activeEditor.getContent() + text);
+	if(parent.tinyMCE.activeEditor.getContent().indexOf('[swippjs]') === -1) {
+		parent.tinyMCE.activeEditor.setContent(parent.tinyMCE.activeEditor.getContent() + text);
+	}
 	//Close window
 	parent.jQuery("#TB_closeWindowButton").click();
 }
@@ -62,9 +93,7 @@ function appendText(text) {
  */
 function swippSignUp(payload){
 	swippApiCall(payload, function(data){
-		console.log('Response:');
 		data = jQuery.parseJSON(data);
-		console.log(data);
 		var signInPayload = {
 			action: 'swipp_sign_in',
 			accountType: 1,
@@ -80,10 +109,7 @@ function swippSignUp(payload){
  */
 function swippSignIn(payload){
 	swippApiCall(payload, function(data){
-		console.log(data);
-		console.log('Response:');
 		data = jQuery.parseJSON(data);
-		console.log(data);
 		jQuery("#swipp_sign_up").addClass('hidden');
 		jQuery("#swipp_account_token, #swipp_account_token_hidden")
 			.val(data.response.signInOutput.accessToken)
@@ -102,12 +128,9 @@ function swippSignIn(payload){
  */
 function swippCheckOrg(payload){
 	swippApiCall(payload, function(data){
-		console.log('Response:');
 		data = jQuery.parseJSON(data);
-		console.log(data);
 		var orgId = (data.response.length > 0) ? data.response.orgAccountDetails.id : data.response.accountId;
 		jQuery("#swipp_org_id_hidden").val(orgId);
-		
 	});
 }
 
@@ -121,13 +144,8 @@ function swippCreateWidget(postId, termId){
 		'term_id': termId
 	}
 	swippApiCall(payload, function(data){
-		console.log(jQuery.parseJSON(data));
-		//console.log(data);
-		//jQuery('#swippInfoDiv').html("Widget created. Update or refresh the page to show API results.");
-		appendText('[swippjs]');
-		/*var payload2 = {
-			'action
-		}*/
+		swippAppendText('[swippjs]');
+		$('input[value="swipp_widget"]').parent().parent().find('td:nth-child(2)').find('textarea').val(data);
 	});
 }
 
@@ -135,12 +153,18 @@ function swippCreateWidget(postId, termId){
  * Swipp prepare api call
  */
 function swippApiCall(payload, successCallback){
+	console.log('API Call: ');
 	console.log(payload);
 	jQuery.ajax({
 		url:	ajaxurl,
 		type: 'POST',
 		data:	payload,
-		success: successCallback,
+		success: function(data){
+			console.log(data);
+			if(!swippApiErrors(data)) {
+				successCallback(data);
+			}
+		},
 		error: function(xhr, ts, et) {
 			console.log('Error:');
 			console.log(xhr);
@@ -148,4 +172,23 @@ function swippApiCall(payload, successCallback){
 			console.log(et);
 		}
 	});
+}
+
+/**
+ * Swipp handle api errors
+ */
+function swippApiErrors(data){
+	var data = jQuery.parseJSON(data);
+	if(typeof data.response !== 'undefined') {
+		if(typeof data.response.errorInfo !== 'undefined') {
+			console.log("Error Status: " + data.response.errorInfo.errorCode);
+			console.log("Error Message: " + data.response.errorInfo.errorMessage);
+			alert(data.response.errorInfo.errorMessage);
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return true;
+	}
 }

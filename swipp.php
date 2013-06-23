@@ -99,10 +99,16 @@
 	 */
 	function swipp_js( $atts ) {
 		global $post;
+
+		extract( shortcode_atts( array(
+			'style' => 'top',
+			'position' => 'left'
+		), $atts ) );
+
 		$swipp_settings		= get_option('swipp-settings');
 		$swipp_widget			= json_decode(get_post_meta($post->ID, 'swipp_widget', true), true);
 		//$swipp_widget_key		= str_replace('-', '', $swipp_widget['response']['widgetTermDetail']['widgetKey']);
-		$swipp_widget_key		= str_replace('-', '', $swipp_widget['response']['widgetTermDetail']['widgetKey']);
+		$swipp_widget_key		= base64_encode($swipp_widget['response']['widgetTermDetail']['widgetKey']);
 		$swipp_widget_info	= $swipp_widget['response']['widgetTermDetail']['termData']['swippTerm'];
 		$swipp_app_token		= str_replace('-', '', SWIPP_APP_TOKEN);
 
@@ -111,14 +117,9 @@
 		$output .=	"widgetKey='" . $swipp_widget_key . "' ";
 		$output .=	"apptoken='" . $swipp_app_token . "' ";
 		$output .=	"name='swippButton' class='swippButton' ";
-		$output .=	"popupPosition='left' scorePosition='right' ";
+		$output .=	"popupPosition='" . $atts['position'] . "' scorePosition='" . $atts['style'] . "' ";
 		$output .=	"pictureUrl=''>";
 		$output .=	"</div>";
-
-		extract( shortcode_atts( array(
-			'option_a' => 'true',
-			'option_b' => 'false'
-		), $atts ) );
 
 		//return "<script type='text/javascript'>alert('" . $post->ID . "');</script>";
 		return $output;
@@ -153,7 +154,7 @@
 		//our popup's title
 		$title = 'Add Swipp';
 		//append the icon
-		$context .= "<a id='swipp_add_swipp' title='{$title}' class='thickbox button' href='#TB_inline?width=400&inlineId=swipp_popup'>";
+		$context .= "<a id='swipp_add_swipp' title='{$title}' class='thickbox button' href='#TB_inline?width=400&height=555&inlineId=swipp_popup'>";
 		$context .= "<img style=\"margin: -2px 0 0 0; padding: 0;\" src=\"$img\" /> Add Swipp";
 		$context .= "</a>";
 
@@ -169,11 +170,34 @@
 		?>
 		<div id="swipp_popup" style="display:none;">
 			<h2>Add Swipp Options</h2>
+			<h3>Select a Topic</h3>
 			<p>
-				<label for="swipp_select_term">Term: </label>
+				<label for="swipp_select_term">Topic: </label>
 				<input type="text" id="swipp_select_term" name="swipp-settings[swipp_select_term]" value="" />
-				<input type="button" id="swipp_create_widget" class="button" value="Create widget with term" />
 			</p>
+			<h3>Select Popup Left or Right</h3>
+			<p>
+				<label for="swipp_widget_position">Popup Position: </label>
+				<select id="swipp_popup_position" name="swipp-settings[swipp_popup_position]">
+					<option value="left">Left</option>
+					<option value="right">Right</option>
+				</select>
+			</p>
+			<h3>Select a Widget Style</h3>
+			<p style="width: 30%; text-align: center; display: inline-block;">
+				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-top.png'; ?>' /><br />
+				<label for="swipp_widget_style">Top: </label>
+				<input type="radio" id="swipp_widget_style_top" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="top" checked='checked' />
+			</p>
+			<p style="width: 30%; text-align: center; display: inline-block;">
+				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-right.png'; ?>' /><br />
+				<label for="swipp_widget_style">Right: </label>
+				<input type="radio" id="swipp_widget_style_right" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="right" />
+			</p>
+			<p style="text-align: right;">
+				<input type="button" id="swipp_create_widget" class="button button-primary button-large" value="Insert Swipp" />
+			</p>
+			<p></p>
 			<div id="swippInfoDiv">
 
 			</div>
@@ -375,6 +399,7 @@
 		}
 
 		$widget_key		= $ret['response']->widgetKey;
+		$widget_key_64	= base64_encode($ret['response']->widgetKey);
 		$uri				= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/widget?userGuid=$user_guid&accessToken=$access_token";
 
 		$body				= json_encode(array(
@@ -396,12 +421,12 @@
 
 		$widget_id			= $ret2['response']->widgetId;
 		$uri					= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/widget/$widget_id/term?userGuid=$user_guid&accessToken=$access_token";
-		$uri_with_term		= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/widget/$widget_id/term?termId=$term_id&userGuid=$user_guid&accessToken=$access_token";
+		$uri_with_term		= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/widget/$widget_id/term?termId=$term_id&userGuid=$user_guid&accessToken=$access_token&appId=$widget_key_64";
 
 		$ret3 = curlRequest($uri_with_term, $header, 'PUT', null);
 
 		if($ret3['status'] != 200) {
-			echo json_encode(array('error_key' => 'REQUEST_FAILED 3', 'response' => $ret3['response']));
+			echo json_encode(array('error_key' => 'REQUEST_FAILED 3'));
 			die();
 		}
 

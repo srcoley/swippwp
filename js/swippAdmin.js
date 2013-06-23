@@ -80,7 +80,9 @@ jQuery(document).ready(function($) {
  */
 function swippAppendText(text) {
 	//Insert content
-	if(parent.tinyMCE.activeEditor.getContent().indexOf('[swippjs]') === -1) {
+	if(parent.tinyMCE.activeEditor.getContent().match(/\[swippjs[ a-zA-Z0-9=\"]*\]/gi)) {
+		parent.tinyMCE.activeEditor.setContent(parent.tinyMCE.activeEditor.getContent().replace(/\[swippjs[ a-zA-Z0-9=\"]*\]/gi, text));
+	} else {
 		parent.tinyMCE.activeEditor.setContent(parent.tinyMCE.activeEditor.getContent() + text);
 	}
 	//Close window
@@ -143,8 +145,12 @@ function swippCreateWidget(postId, termId){
 		'post_id': postId,
 		'term_id': termId
 	}
+	var swippPosition = jQuery("#swipp_popup_position").val();
+	var swippStyle = jQuery('.swippStyle:checked').val();
+	console.log(swippPosition);
+	console.log(swippStyle);
 	swippApiCall(payload, function(data){
-		swippAppendText('[swippjs]');
+		swippAppendText('[swippjs style="' + swippStyle + '" position="' + swippPosition + '"]');
 		$('input[value="swipp_widget"]').parent().parent().find('td:nth-child(2)').find('textarea').val(data);
 	});
 }

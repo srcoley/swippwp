@@ -81,15 +81,18 @@
 			wp_enqueue_script('swipp-admin-js');
 			wp_enqueue_style('jquery-ui-custom');
 		}
-		wp_register_script('swipp-widget-prep-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/js/swippWidgetPrep.js', array('jquery'), false, true);
-		wp_register_script('swipp-widget-js', 'http://plus.swipp.com/widget/js/swippWidget.js', array('jquery', 'swipp-widget-prep-js'), false, true);
+		wp_register_script('swipp-widget-prep-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/js/swippWidgetPrep.js', array(), false, true);
+		wp_register_script('swipp-widget-js', 'http://swippplus.swippeng.com/widget/js/swippWidget.js', array('swipp-widget-prep-js', 'jquery'), false, true);
 		wp_register_style('swipp-widget-custom-css', $GLOBALS['SWIPP_PLUGIN_PATH'].'/css/swippWidget.css');
-		wp_register_style('swipp-widget-css', 'http://plus.swipp.com/widget/css/swippWidget.css');
+		wp_register_style('swipp-widget-css', 'http://swippplus.swippeng.com/widget/css/swippWidget.css');
 
-		wp_enqueue_script('swipp-widget-prep-js');
-		wp_enqueue_script('swipp-widget-js');
-		wp_enqueue_style('swipp-widget-custom-css');
-		wp_enqueue_style('swipp-widget-css');
+		//wp_enqueue_script('swipp-widget-prep-js');
+		if(!is_admin()) {
+			wp_enqueue_style('swipp-widget-custom-css');
+			wp_enqueue_style('swipp-widget-css');
+			wp_enqueue_script('swipp-widget-js');
+		}
+		
 	}
 
 
@@ -112,7 +115,8 @@
 		$swipp_widget_info	= $swipp_widget['response']['widgetTermDetail']['termData']['swippTerm'];
 		$swipp_app_token		= str_replace('-', '', SWIPP_APP_TOKEN);
 
-		
+		//$output = '<script>var Swipp= Swipp || {}; Swipp.baseUri = "http://swippplus.swippeng.com";</script>';
+		//$output .= '<script src="http://code.jquery.com/jquery-1.8.3.js"></script><script src="http://swippplus.swippeng.com/widget/js/swippWidget.js"></script>';
 		$output =	"<div termid='" . $swipp_widget_info['termId']. "' ";
 		$output .=	"widgetKey='" . $swipp_widget_key . "' ";
 		$output .=	"apptoken='" . $swipp_app_token . "' ";
@@ -219,7 +223,7 @@
 	function swipp_autosuggest_callback() {
 		//echo "the term: " . $_POST['term'] . ':' . strlen($_POST['term']);
 		if(isset($_POST['term']) && $_POST['term'] != '' && strlen($_POST['term']) >= 1) {
-			$uri = 'http://search.swipp.com/search/autofill?query=' . urlencode($_POST['term']);
+			$uri = 'http://rest.swippeng.com/search/autofill?query=' . urlencode($_POST['term']);
 			$date		= gmdate(DATE_RFC822);
 			$header	= array("Date: $date");
 

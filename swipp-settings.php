@@ -124,7 +124,7 @@
 
 	function swipp_account_token_hidden_callback($args) { 
 		$options = get_option('swipp-settings'); 
-		if($options['swipp_account_token_hidden'] == $options['swipp_account_token_hidden']/*''*/) {
+		if($options['swipp_account_token_hidden'] == '') {
 			$html = '<input type="hidden" id="swipp_account_token_hidden" name="swipp-settings[swipp_account_token_hidden]" value="'.$options['swipp_account_token_hidden'].'" />';  
 			$html .= '<input type="text" style="width: 350px;" id="swipp_account_token" class="hidden" readonly value="'.$options['swipp_account_token_hidden'].'" />';  
 			$html .= '<input type="button" id="swipp_sign_up" class="button" value="Sign Up To Generate" />';
@@ -132,18 +132,23 @@
 			$html = '<input type="text" style="width: 350px;" id="swipp_account_token" readonly value="'.$options['swipp_account_token_hidden'].'" />';  
 			$html .= '<label for="swipp_account_token"> '  . $args[0] . '</label>';
 			$html .= '<input type="hidden" id="swipp_account_token_hidden" name="swipp-settings[swipp_account_token_hidden]" value="'.$options['swipp_account_token_hidden'].'" />';  
+			$html .= '<input type="button" id="swipp_sign_up" class="button" value="Generate New Token" />';
 		} 
 		echo $html; 
 	}
 
 	function swipp_user_guid_hidden_callback($args) { 
-		$html = '<input type="hidden" id="swipp_user_guid_hidden" name="swipp-settings[swipp_user_guid_hidden]" value="'.$options['swipp_user_guid_hidden'].'" />';  
+		$options = get_option('swipp-settings'); 
+		$guid = (isset($options['swipp_user_guid_hidden']) && $options['swipp_user_guid_hidden'] != '') ? $options['swipp_user_guid_hidden'] : '';
+		$html = '<input type="hidden" id="swipp_user_guid_hidden" name="swipp-settings[swipp_user_guid_hidden]" value="'.$guid.'" />';  
 		$html .= '<label for="swipp_user_guid_hidden"> '  . $args[0] . '</label>';
 		echo $html; 
 	}
 
 	function swipp_org_id_hidden_callback($args) { 
-		$html = '<input type="hidden" id="swipp_org_id_hidden" name="swipp-settings[swipp_org_id_hidden]" value="'.$options['swipp_org_id_hidden'].'" />';  
+		$options = get_option('swipp-settings'); 
+		$orgid = (isset($options['swipp_org_id_hidden']) && $options['swipp_org_id_hidden'] != '') ? $options['swipp_org_id_hidden'] : '';
+		$html = '<input type="hidden" id="swipp_org_id_hidden" name="swipp-settings[swipp_org_id_hidden]" value="'.$orgid.'" />';  
 		$html .= '<label for="swipp_org_id_hidden"> '  . $args[0] . '</label>';
 		echo $html; 
 	}
@@ -238,9 +243,9 @@
             <?php submit_button(); ?> 
 				<?php
 					$swipp_settings = get_option('swipp-settings');
-					echo "<pre>";
+					/*echo "<pre>";
 					print_r($swipp_settings);
-					echo "</pre>";
+					echo "</pre>";*/
 				?>
 			</form>  
 		</div><!-- wrap -->  

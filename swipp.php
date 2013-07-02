@@ -76,21 +76,44 @@
 	 */
 	function swipp_widget_assets() {
 		if(is_admin()) {
-			wp_register_script('swipp-admin-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/js/swippAdmin.js', array('jquery', 'jquery-ui-autocomplete'), false, true);
+			wp_register_script('swipp-admin-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/js/swippAdmin.js', array('jquery', 'jquery-ui-autocomplete'), false, false);
 			wp_register_style('jquery-ui-custom', $GLOBALS['SWIPP_PLUGIN_PATH'].'/css/smoothness/jquery-ui-1.10.3.custom.min.css');
+			wp_enqueue_script('jquery');
 			wp_enqueue_script('swipp-admin-js');
 			wp_enqueue_style('jquery-ui-custom');
 		}
-		wp_register_script('swipp-widget-prep-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/js/swippWidgetPrep.js', array(), false, true);
-		wp_register_script('swipp-widget-js', 'http://swippplus.swippeng.com/widget/js/swippWidget.js', array('swipp-widget-prep-js', 'jquery'), false, true);
+		/*wp_register_script('swipp-jquery', 'http://code.jquery.com/jquery-1.8.3.js', array(), false, false);
+		wp_register_script('swipp-widget-prep-js', $GLOBALS['SWIPP_PLUGIN_PATH'].'/js/swippWidgetPrep.js', array(), false, false);
+		wp_register_script('swipp-widget-js', 'http://swippplus.swippeng.com/widget/js/swippWidget.js', array('swipp-widget-prep-js', 'jquery'), false, false);
+		wp_register_script('swipp-widget-min-js', 'http://swippplus.swippeng.com/widget_minimal/js/swippWidget.js', array('swipp-widget-prep-js', 'jquery'), false, false);
+		wp_register_script('swipp-custom-ui-core-js', 'http://swippplus.swippeng.com/widget/slider/js/jquery.ui.core.min.js', array('swipp-widget-prep-js', 'jquery'), false, false);
+		wp_register_script('swipp-custom-ui-widget-js', 'http://swippplus.swippeng.com/widget/slider/js/jquery.ui.widget.min.js', array('swipp-custom-ui-core-js'), false, false);
+		wp_register_script('swipp-custom-ui-mouse-js', 'http://swippplus.swippeng.com/widget/slider/js/jquery.ui.mouse.min.js', array('swipp-custom-ui-widget-js'), false, false);
+		wp_register_script('swipp-custom-ui-slider-js', 'http://swippplus.swippeng.com/widget/slider/js/jquery.ui.slider.min.js', array('swipp-custom-ui-mouse-js'), false, false);
+		wp_register_script('swipp-custom-ui-touch-js', 'http://swippplus.swippeng.com/widget/slider/js/jquery.ui.touch-punch.min.js', array('swipp-custom-ui-slider-js'), false, false);
+
 		wp_register_style('swipp-widget-custom-css', $GLOBALS['SWIPP_PLUGIN_PATH'].'/css/swippWidget.css');
 		wp_register_style('swipp-widget-css', 'http://swippplus.swippeng.com/widget/css/swippWidget.css');
+		wp_register_style('swipp-widget-slider-css', 'http://swippplus.swippeng.com/widget_minimal/slider/css/slider.css');*/
 
 		//wp_enqueue_script('swipp-widget-prep-js');
 		if(!is_admin()) {
-			wp_enqueue_style('swipp-widget-custom-css');
+			/*wp_enqueue_style('swipp-widget-custom-css');
+			wp_enqueue_style('swipp-widget-slider-css');
 			wp_enqueue_style('swipp-widget-css');
+			
+			wp_enqueue_script('jquery');
+			wp_enqueue_script('swipp-widget-prep-js');
+
 			wp_enqueue_script('swipp-widget-js');
+
+			wp_enqueue_script('swipp-jquery');
+			wp_enqueue_script('swipp-custom-ui-core-js');
+			wp_enqueue_script('swipp-custom-ui-widget-js');
+			wp_enqueue_script('swipp-custom-ui-mouse-js');
+			wp_enqueue_script('swipp-custom-ui-slider-js');
+			wp_enqueue_script('swipp-custom-ui-touch-js');
+			wp_enqueue_script('swipp-widget-min-js');*/
 		}
 		
 	}
@@ -103,26 +126,69 @@
 	function swipp_js( $atts ) {
 		global $post;
 
+		if(!is_page() && !is_single()) {
+			return false;
+		}
+
 		extract( shortcode_atts( array(
-			'style' => 'top',
-			'position' => 'left'
+			'type' => 1
 		), $atts ) );
 
-		$swipp_settings		= get_option('swipp-settings');
-		$swipp_widget			= json_decode(get_post_meta($post->ID, 'swipp_widget', true), true);
-		//$swipp_widget_key		= str_replace('-', '', $swipp_widget['response']['widgetTermDetail']['widgetKey']);
-		$swipp_widget_key		= base64_encode($swipp_widget['response']['widgetTermDetail']['widgetKey']);
-		$swipp_widget_info	= $swipp_widget['response']['widgetTermDetail']['termData']['swippTerm'];
+		if(!isset($atts['type']) || $atts['type'] == '') {
+			return false;
+		}
+
+		if(!isset($atts['term_id']) || $atts['term_id'] == '') {
+			return false;
+		}
+
+		if(!isset($atts['widget_key']) || $atts['widget_key'] == '') {
+			return false;
+		}
+
+		$swipp_widget_key		= base64_encode($atts['widget_key']);
+		$swipp_widget_type	= $atts['type'];
+		$swipp_term_id			= $atts['term_id'];
 		$swipp_app_token		= str_replace('-', '', SWIPP_APP_TOKEN);
 
-		//$output = '<script>var Swipp= Swipp || {}; Swipp.baseUri = "http://swippplus.swippeng.com";</script>';
-		//$output .= '<script src="http://code.jquery.com/jquery-1.8.3.js"></script><script src="http://swippplus.swippeng.com/widget/js/swippWidget.js"></script>';
-		$output =	"<div termid='" . $swipp_widget_info['termId']. "' ";
-		$output .=	"widgetKey='" . $swipp_widget_key . "' ";
-		$output .=	"apptoken='" . $swipp_app_token . "' ";
-		$output .=	"name='swippButton' class='swippButton' ";
-		$output .=	"popupPosition='" . $atts['position'] . "' scorePosition='" . $atts['style'] . "' ";
-		$output .=	"pictureUrl=''>";
+		if($swipp_widget_type == '1') {
+			$output = "<link rel='stylesheet' type='text/css' href='http://swippplus.swippeng.com/widget/css/swippWidget.css' />";
+		} else if($swipp_widget_type == '3') {
+			$output = "<link rel='stylesheet' href='http://swippplus.swippeng.com/widget_minimal/slider/css/slider.css' type='text/css'>";
+			$output .= "<link rel='stylesheet' type='text/css' href='http://swippplus.swippeng.com/widget_minimal/css/swippWidget.css' />";
+		}
+		$output .= "<script>";
+		$output .= "var Swipp= Swipp || {}; Swipp.baseUri = 'http://swippplus.swippeng.com';";
+		$output .= "</script>";
+		$output .= "<script src='http://code.jquery.com/jquery-1.8.3.js'></script>";
+		if($swipp_widget_type == '1') {
+			$output .= "<script src='http://swippplus.swippeng.com/widget/js/swippWidget.js'></script>";
+		} else if($swipp_widget_type == '3') {
+			$output .= "<script src='http://swippplus.swippeng.com/widget/slider/js/jquery.ui.core.min.js'></script>";
+			$output .= "<script src='http://swippplus.swippeng.com/widget/slider/js/jquery.ui.widget.min.js'></script>";
+			$output .= "<script src='http://swippplus.swippeng.com/widget/slider/js/jquery.ui.mouse.min.js'></script>";
+			$output .= "<script src='http://swippplus.swippeng.com/widget/slider/js/jquery.ui.slider.min.js'></script>";
+			$output .= "<script src='http://swippplus.swippeng.com/widget/slider/js/jquery.ui.touch-punch.min.js'></script>";
+			$output .= "<script src='http://swippplus.swippeng.com/widget_minimal/js/swippWidget.js'></script>";
+		}
+
+		$output .=	"<div termid='$swipp_term_id' ";
+		if($swipp_widget_type == "3" || $swipp_widget_type == 3) {
+			$output .=	"id='swipp-slider-$swipp_term_id' ";
+		}
+		$output .=	"widgetKey='$swipp_widget_key' ";
+		$output .=	"apptoken='$swipp_app_token' ";
+		$output .=	"name='swippButton' ";
+		if($swipp_widget_type == "3" || $swipp_widget_type == 3) {
+			$output .=	"class='swippSlider' ";
+		} else {
+			$output .=	"class='swippButton' ";
+		}
+		$output .=	"popupPosition='right' ";
+		if($swipp_widget_type == "1" || $swipp_widget_type == 1) {
+			$output .=	"scorePosition='right' ";
+		}
+		$output .=	"pictureUrl='http%3A%2F%2Fplus.swipp.com%2Fwidget%2Fimg%2Fdefault-avatar.png'>";
 		$output .=	"</div>";
 
 		//return "<script type='text/javascript'>alert('" . $post->ID . "');</script>";
@@ -179,24 +245,16 @@
 				<label for="swipp_select_term">Topic: </label>
 				<input type="text" id="swipp_select_term" name="swipp-settings[swipp_select_term]" value="" />
 			</p>
-			<h3>Select Popup Left or Right</h3>
-			<p>
-				<label for="swipp_widget_position">Popup Position: </label>
-				<select id="swipp_popup_position" name="swipp-settings[swipp_popup_position]">
-					<option value="left">Left</option>
-					<option value="right">Right</option>
-				</select>
-			</p>
 			<h3>Select a Widget Style</h3>
 			<p style="width: 30%; text-align: center; display: inline-block;">
-				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-top.png'; ?>' /><br />
-				<label for="swipp_widget_style">Top: </label>
-				<input type="radio" id="swipp_widget_style_top" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="top" checked='checked' />
+				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-right.png'; ?>' /><br />
+				<label for="swipp_widget_style">Button Widget: </label>
+				<input type="radio" id="swipp_widget_style_right" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="1" checked='checked'/>
 			</p>
 			<p style="width: 30%; text-align: center; display: inline-block;">
-				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-right.png'; ?>' /><br />
-				<label for="swipp_widget_style">Right: </label>
-				<input type="radio" id="swipp_widget_style_right" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="right" />
+				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-slider.png'; ?>' /><br />
+				<label for="swipp_widget_style">Slider Widget: </label>
+				<input type="radio" id="swipp_widget_style_top" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="3" />
 			</p>
 			<p style="text-align: right;">
 				<input type="button" id="swipp_create_widget" class="button button-primary button-large" value="Insert Swipp" />
@@ -317,7 +375,9 @@
 		$header	= array("Date: $date", "Content-Type: application/json");
 
 		$ret = curlRequest($uri, $header, 'GET', null);
-		if($ret['response']->orgAccountDetails->length <= 0) {
+		/*echo json_encode($ret);
+		die();*/
+		if(count($ret['response']->orgAccountDetails) <= 0) {
 			$body = json_encode(array("companyName" => get_bloginfo('name')));
 			$ret = curlRequest($uri, $header, 'POST', $body);
 		}
@@ -370,16 +430,20 @@
 		$payload = array();
 		$post_id;
 		$term_id;
+		$widget_type;
 
 		foreach($_POST as $k=>$v) {
-			if(isset($_POST[$k]) && $_POST[$k] != '' && $k != 'action' && $k != 'post_id' && $k != 'term_id') {
+			if(isset($_POST[$k]) && $_POST[$k] != '' && $k != 'action' && $k != 'post_id' && $k != 'term_id' && $k != 'widget_type') {
 				$payload[$k] = $v;
 			} else if($k == 'post_id' && is_numeric($v)) {
 				$post_id = $v;
 			} else if($k == 'term_id' && $v != '') {
 				$term_id = $v;
+			} else if($k == 'widget_type' && $v != '') {
+				$widget_type = $v;
 			}
 		}
+		
 
 		$swipp_settings	= get_option('swipp-settings');
 		$org_id				= $swipp_settings['swipp_org_id_hidden'];
@@ -408,13 +472,13 @@
 
 		$body				= json_encode(array(
 								'widgetKey' => $widget_key,
-								'type'		=> 1
+								'type'		=> intval($widget_type)
 							));
-
+		
 		$ret2 = curlRequest($uri, $header, 'POST', $body);
 
 		if($ret2['status'] != 200) {
-			echo json_encode(array('error_key' => 'REQUEST_FAILED 2'));
+			echo json_encode(array('error_key' => 'REQUEST_FAILED 2', 'response' => $ret2));
 			die();
 		}
 

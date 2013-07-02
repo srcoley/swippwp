@@ -38,8 +38,10 @@ jQuery(document).ready(function($) {
 			}
 			swippApiCall(orgTermPayload, function(data){
 				data = $.parseJSON(data);
+				var swippWidgetStyle = jQuery('.swippStyle:checked').val();
+				console.log("Widget Style: " + swippWidgetStyle);
 				if(data.status == 200) {
-					swippCreateWidget(postId, data.response.termId);
+					swippCreateWidget(postId, data.response.termId, swippWidgetStyle);
 				} else {
 					alert('Failed Request');
 				}
@@ -80,8 +82,8 @@ jQuery(document).ready(function($) {
  */
 function swippAppendText(text) {
 	//Insert content
-	if(parent.tinyMCE.activeEditor.getContent().match(/\[swippjs[ a-zA-Z0-9=\"]*\]/gi)) {
-		parent.tinyMCE.activeEditor.setContent(parent.tinyMCE.activeEditor.getContent().replace(/\[swippjs[ a-zA-Z0-9=\"]*\]/gi, text));
+	if(parent.tinyMCE.activeEditor.getContent().match(/\[swippjs[ a-zA-Z0-9=_\-\"]*\]/gi)) {
+		parent.tinyMCE.activeEditor.setContent(parent.tinyMCE.activeEditor.getContent().replace(/\[swippjs[ a-zA-Z0-9=_\-\"]*\]/gi, text));
 	} else {
 		parent.tinyMCE.activeEditor.setContent(parent.tinyMCE.activeEditor.getContent() + text);
 	}
@@ -131,7 +133,7 @@ function swippSignIn(payload){
 function swippCheckOrg(payload){
 	swippApiCall(payload, function(data){
 		data = jQuery.parseJSON(data);
-		var orgId = (data.response.length > 0) ? data.response.orgAccountDetails.id : data.response.accountId;
+		var orgId = (typeof data.response !== 'undefined' && typeof data.response.accountId === 'undefined') ? data.response.orgAccountDetails[0].id : data.response.accountId;
 		jQuery("#swipp_org_id_hidden").val(orgId);
 	});
 }
@@ -139,19 +141,19 @@ function swippCheckOrg(payload){
 /**
  * Swipp create widget
  */
-function swippCreateWidget(postId, termId){
+function swippCreateWidget(postId, termId, widgetType){
 	var payload = {
-		'action': 'swipp_create_widget',
-		'post_id': postId,
-		'term_id': termId
+		'action'			: 'swipp_create_widget',
+		'post_id'		: postId,
+		'term_id'		: termId,
+		'widget_type'	: widgetType
 	}
-	var swippPosition = jQuery("#swipp_popup_position").val();
-	var swippStyle = jQuery('.swippStyle:checked').val();
-	console.log(swippPosition);
-	console.log(swippStyle);
 	swippApiCall(payload, function(data){
-		swippAppendText('[swippjs style="' + swippStyle + '" position="' + swippPosition + '"]');
-		$('input[value="swipp_widget"]').parent().parent().find('td:nth-child(2)').find('textarea').val(data);
+		data = jQuery.parseJSON(data);
+		//var widgetKey = 'widgetkey';
+		var widgetKey = data.response.widgetTermDetail.widgetKey;
+		swippAppendText('[swippjs type="' + widgetType + '" term_id="' + termId + '" widget_key="' + widgetKey + '"]');
+		jQuery('input[value="swipp_widget"]').parent().parent().find('td:nth-child(2)').find('textarea').val(data);
 	});
 }
 
@@ -166,7 +168,10 @@ function swippApiCall(payload, successCallback){
 		type: 'POST',
 		data:	payload,
 		success: function(data){
+			console.log('Raw:');
 			console.log(data);
+			console.log('JSON:');
+			console.log(jQuery.parseJSON(data));
 			if(!swippApiErrors(data)) {
 				successCallback(data);
 			}
@@ -187,6 +192,9 @@ function swippApiErrors(data){
 	var data = jQuery.parseJSON(data);
 	if(typeof data.response !== 'undefined') {
 		if(typeof data.response.errorInfo !== 'undefined') {
+			if(data.response.errorInfo.errorCode = "ALREADY_SIGNED_UP_ERROR") {
+				return false;
+			}
 			console.log("Error Status: " + data.response.errorInfo.errorCode);
 			console.log("Error Message: " + data.response.errorInfo.errorMessage);
 			alert(data.response.errorInfo.errorMessage);

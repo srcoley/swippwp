@@ -59,7 +59,13 @@ jQuery(document).ready(function($) {
 	$("#swipp_select_term").on("keyup", function(e){
 		var autosuggest = $(this);
 
-		jQuery('#swipp_select_term').autocomplete({ minLength: 1 });
+		jQuery('#swipp_select_term').autocomplete({
+			minLength: 1,
+			select: function(event, ui){
+				jQuery('#swipp_term_check').css('display', 'inline-block');
+				jQuery('#swipp_create_widget').removeAttr('disabled');
+			}
+		});
 		var payload = {
 			'action'	: 'swipp_autosuggest',
 			'term'		: autosuggest.val()
@@ -68,9 +74,9 @@ jQuery(document).ready(function($) {
 			var data = $.parseJSON(data);
 			var suggestions = [];
 			jQuery.each(data.response.searchOutput.terms.terms, function(i, e) {
-				suggestions.push(e.name);
-				jQuery('#swipp_select_term').autocomplete('option', 'source', suggestions);
+				suggestions.push({ label: e.name, value: e.name });
 			});
+			jQuery('#swipp_select_term').autocomplete('option', 'source', suggestions);
 		});
 	});
 
@@ -135,6 +141,7 @@ function swippCheckOrg(payload){
 		data = jQuery.parseJSON(data);
 		var orgId = (typeof data.response !== 'undefined' && typeof data.response.accountId === 'undefined') ? data.response.orgAccountDetails[0].id : data.response.accountId;
 		jQuery("#swipp_org_id_hidden").val(orgId);
+		jQuery("#swipp_auth_notice").css('display', 'inline');
 	});
 }
 

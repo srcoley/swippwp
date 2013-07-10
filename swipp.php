@@ -3,7 +3,7 @@
 	Plugin Name: Swipp
 	Plugin URI: 
 	Description: Integrate the best social intelligence platform on the web to measure your visitors' sentiment on any topic.
-	Version: 0.2b
+	Version: 1.0
 	Author: Stephen Coley, Douglas Karr
 	Author URI: http://www.dknewmedia.com
 
@@ -240,24 +240,26 @@
 		?>
 		<div id="swipp_popup" style="display:none;">
 			<h2>Add Swipp Options</h2>
-			<h3>Select a Topic</h3>
+			<h3>Step 1: Select a Widget Style</h3>
+			<p style="width: 40%; text-align: center; display: inline-block;">
+				<label for="swipp_widget_style">Standard: </label>
+				<input type="radio" id="swipp_widget_style_right" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="1" checked='checked'/><br />
+				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-right.png'; ?>' />
+			</p>
+			<p style="width: 40%; text-align: center; display: inline-block;">
+				<label for="swipp_widget_style">Slider: </label>
+				<input type="radio" id="swipp_widget_style_top" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="3" /><br />
+				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-slider.png'; ?>' />
+			</p>
+			<h3>Step 2: Select a Topic</h3>
 			<p>
 				<label for="swipp_select_term">Topic: </label>
 				<input type="text" id="swipp_select_term" name="swipp-settings[swipp_select_term]" value="" />
+				<span id="swipp_term_check" style="display: none; background: url(<?php echo $GLOBALS['SWIPP_PLUGIN_PATH']; ?>/images/swipp_term_check.png) no-repeat top left; width: 26px; height: 18px; text-indent: -2000em;"></span>
 			</p>
-			<h3>Select a Widget Style</h3>
-			<p style="width: 30%; text-align: center; display: inline-block;">
-				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-right.png'; ?>' /><br />
-				<label for="swipp_widget_style">Button Widget: </label>
-				<input type="radio" id="swipp_widget_style_right" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="1" checked='checked'/>
-			</p>
-			<p style="width: 30%; text-align: center; display: inline-block;">
-				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-slider.png'; ?>' /><br />
-				<label for="swipp_widget_style">Slider Widget: </label>
-				<input type="radio" id="swipp_widget_style_top" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="3" />
-			</p>
-			<p style="text-align: right;">
-				<input type="button" id="swipp_create_widget" class="button button-primary button-large" value="Insert Swipp" />
+			<h3 style="float: left; line-height: 35px;">Step 3:</h3>
+			<p style="float: left; margin-left: 20px;">
+				<input type="button" id="swipp_create_widget" class="button button-primary button-large" value="Insert Swipp" disabled="disabled" />
 			</p>
 			<p></p>
 			<div id="swippInfoDiv">
@@ -314,7 +316,7 @@
 			$body = json_encode(array(
 				"accountType" => $payload['accountType'],
 				"emailAddress" => $payload['emailAddress'],
-				"accountToken" => $payload['accountToken']
+				"accountToken" => base64_encode($payload['accountToken'])
 			));
 
 			echo json_encode(curlRequest($uri, $header, "POST", $body));
@@ -345,7 +347,7 @@
 			$body	= json_encode(array(
 				"accountType"	=> $payload['accountType'],
 				"emailAddress"	=> $payload['emailAddress'],
-				"accountToken" => $payload['accountToken']
+				"accountToken" => base64_encode($payload['accountToken'])
 			));
 
 			$ret = curlRequest($uri, $header, "PUT", $body);

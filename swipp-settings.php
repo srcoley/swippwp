@@ -69,7 +69,7 @@
 
 		add_settings_field(   
 			'swipp_user_token',                      // ID used to identify the field throughout the theme 
-			'User Token',                           // The label to the left of the option interface element 
+			'Password',                           // The label to the left of the option interface element 
 			'swipp_user_token_callback',   // The name of the function responsible for rendering the option interface 
 			'swipp-settings',    // The page on which this option will be displayed 
 			'swipp_settings_section',         // The name of the section to which this field belongs 
@@ -78,7 +78,7 @@
 
 		add_settings_field(   
 			'swipp_account_token_hidden',                      // ID used to identify the field throughout the theme 
-			'Account Token',                           // The label to the left of the option interface element 
+			'',                           // The label to the left of the option interface element 
 			'swipp_account_token_hidden_callback',   // The name of the function responsible for rendering the option interface 
 			'swipp-settings',    // The page on which this option will be displayed 
 			'swipp_settings_section',         // The name of the section to which this field belongs 
@@ -126,13 +126,11 @@
 		$options = get_option('swipp-settings'); 
 		if($options['swipp_account_token_hidden'] == '') {
 			$html = '<input type="hidden" id="swipp_account_token_hidden" name="swipp-settings[swipp_account_token_hidden]" value="'.$options['swipp_account_token_hidden'].'" />';  
-			$html .= '<input type="text" style="width: 350px;" id="swipp_account_token" class="hidden" readonly value="'.$options['swipp_account_token_hidden'].'" />';  
-			$html .= '<input type="button" id="swipp_sign_up" class="button" value="Sign Up To Generate" />';
+			$html .= '<input type="button" id="swipp_sign_up" class="button" value="Sign Up / Sign In" />';
 		} else {
-			$html = '<input type="text" style="width: 350px;" id="swipp_account_token" readonly value="'.$options['swipp_account_token_hidden'].'" />';  
-			$html .= '<label for="swipp_account_token"> '  . $args[0] . '</label>';
+			$html = '<label for="swipp_account_token"> '  . $args[0] . '</label>';
 			$html .= '<input type="hidden" id="swipp_account_token_hidden" name="swipp-settings[swipp_account_token_hidden]" value="'.$options['swipp_account_token_hidden'].'" />';  
-			$html .= '<input type="button" id="swipp_sign_up" class="button" value="Generate New Token" />';
+			$html .= '<input type="button" id="swipp_sign_up" class="button" value="Reauthenticate" />';
 		} 
 		echo $html; 
 	}
@@ -240,7 +238,8 @@
 			<form action="options.php" method="post">
 				<?php settings_fields('swipp-settings'); ?> 
             <?php do_settings_sections('swipp-settings'); ?>          
-            <?php submit_button(); ?> 
+				<span id="swipp_auth_notice" style="display: none;">Signed in. Don't forget to Save Changes below.</span>
+            <?php submit_button(); ?>
 				<?php
 					$swipp_settings = get_option('swipp-settings');
 					/*echo "<pre>";

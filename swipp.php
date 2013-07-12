@@ -247,7 +247,7 @@
 				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-right.png'; ?>' />
 			</p>
 			<p style="width: 40%; text-align: center; display: inline-block;">
-				<label for="swipp_widget_style">Slider: </label>
+				<label for="swipp_widget_style">Quick: </label>
 				<input type="radio" id="swipp_widget_style_top" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="3" /><br />
 				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-slider.png'; ?>' />
 			</p>

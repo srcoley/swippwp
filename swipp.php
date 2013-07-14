@@ -239,20 +239,19 @@
 			$swipp_settings = get_option('swipp-settings');
 		?>
 		<div id="swipp_popup" style="display:none;">
-			<h2>Add Swipp Options</h2>
 			<h3>Step 1: Select a Widget Style</h3>
-			<p style="width: 40%; text-align: center; display: inline-block;">
+			<p style="width: 40%; text-align: left; display: inline-block; margin-left: 1em;">
 				<label for="swipp_widget_style">Standard: </label>
 				<input type="radio" id="swipp_widget_style_right" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="1" checked='checked'/><br />
 				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-right.png'; ?>' />
 			</p>
-			<p style="width: 40%; text-align: center; display: inline-block;">
+			<p style="width: 40%; text-align: left; display: inline-block; margin-left: 1em;">
 				<label for="swipp_widget_style">Quick: </label>
 				<input type="radio" id="swipp_widget_style_top" name="swipp-settings[swipp_widget_style]" class='swippStyle' value="3" /><br />
 				<img src='<?php echo $GLOBALS['SWIPP_PLUGIN_PATH'] . '/images/swipp-widget-slider.png'; ?>' />
 			</p>
 			<h3>Step 2: Select a Topic</h3>
-			<p>
+			<p style="margin-left: 1em;">
 				<label for="swipp_select_term">Topic: </label>
 				<input type="text" id="swipp_select_term" name="swipp-settings[swipp_select_term]" value="" />
 				<span id="swipp_term_check" style="display: none; background: url(<?php echo $GLOBALS['SWIPP_PLUGIN_PATH']; ?>/images/swipp_term_check.png) no-repeat top left; width: 26px; height: 18px; text-indent: -2000em;"></span>

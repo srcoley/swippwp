@@ -90,18 +90,9 @@ function swippAppendText(text) {
 	//Insert content
 	if(!parent.tinyMCE.activeEditor || jQuery('#content_parent').css('display') == 'none') {
 		var activeEditor = jQuery('#content.wp-editor-area');
-		console.log(activeEditor);
-		if(activeEditor.val().match(/\[swippjs[ a-zA-Z0-9=_\-\"]*\]/gi)) {
-			activeEditor.val(activeEditor.val().replace(/\[swippjs[ a-zA-Z0-9=_\-\"]*\]/gi, text));
-		} else {
-			activeEditor.val(activeEditor.val() + text);
-		}
+		activeEditor.val(activeEditor.val() + text);
 	} else {
-		if(parent.tinyMCE.activeEditor.getContent().match(/\[swippjs[ a-zA-Z0-9=_\-\"]*\]/gi)) {
-			parent.tinyMCE.activeEditor.setContent(parent.tinyMCE.activeEditor.getContent().replace(/\[swippjs[ a-zA-Z0-9=_\-\"]*\]/gi, text));
-		} else {
-			parent.tinyMCE.activeEditor.setContent(parent.tinyMCE.activeEditor.getContent() + text);
-		}
+		parent.tinyMCE.activeEditor.setContent(parent.tinyMCE.activeEditor.getContent() + text);
 	}
 	//Close window
 	parent.jQuery("#TB_closeWindowButton").click();

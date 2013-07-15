@@ -1,5 +1,6 @@
 var emailAddress;
 var userToken;
+var suggestion_ids = [];
 jQuery(document).ready(function($) {
 
 	/**
@@ -29,27 +30,49 @@ jQuery(document).ready(function($) {
 	$("#swipp_create_widget").on('click', function(e){
 		var swippTermInput = $('#swipp_select_term');
 		if(swippTermInput.val() != '') {
-			var swippTerm = swippTermInput.val();
+			console.log();
+			if(typeof swippTermInput.attr('data-term-id') === 'undefined') {
+				var termKey = 'term';
+				var termVal = swippTermInput.val(); 
+			} else {
+				var termKey = 'termId';
+				var termVal = parseInt(jQuery('#swipp_term_check').attr('data-term-id'));
+			}
+			var swippWidgetStyle = jQuery('.swippStyle:checked').val();
 			var postId = $('#post_ID').val();
-			var orgTermPayload = {
-				'action'	: 'swipp_org_term',
-				'term'	: swippTerm,
+			var payload = {
+				'action'	: 'swipp_create_widget',
+				'type'	: parseInt(swippWidgetStyle),
 				'post_id'	: postId
 			}
-			swippApiCall(orgTermPayload, function(data){
+			payload[termKey] = termVal;
+			swippApiCall(payload, function(data){
 				data = $.parseJSON(data);
-				var swippWidgetStyle = jQuery('.swippStyle:checked').val();
-				console.log("Widget Style: " + swippWidgetStyle);
 				if(data.status == 200) {
-					swippCreateWidget(postId, data.response.termId, swippWidgetStyle);
+					swippCreateWidget(data.response.termId, payload.type, data.response.widgetKey);
+					//swippCreateWidget(postId, data.response.termId, swippWidgetStyle);
 				} else {
 					alert('Failed Request');
 				}
 			});
 		} else {
-			alert('Invalid Term');
+			alert('You must select a topic.');
 		}
 		e.preventDefault();
+	});
+
+
+	/*
+	 * jQuery UI Autocomplete
+	 */
+	jQuery('#swipp_select_term').autocomplete({
+		minLength: 2,
+		select: function(event, ui){
+			//jQuery('#swipp_term_check').css('display', 'inline-block');
+			//jQuery('#swipp_create_widget').removeAttr('disabled');
+			//console.log(suggestion_ids[ui.item.label]);
+			jQuery('#swipp_term_check').attr('data-term-id', suggestion_ids[ui.item.label]);
+		}
 	});
 
 
@@ -59,13 +82,7 @@ jQuery(document).ready(function($) {
 	$("#swipp_select_term").on("keyup", function(e){
 		var autosuggest = $(this);
 
-		jQuery('#swipp_select_term').autocomplete({
-			minLength: 1,
-			select: function(event, ui){
-				jQuery('#swipp_term_check').css('display', 'inline-block');
-				jQuery('#swipp_create_widget').removeAttr('disabled');
-			}
-		});
+		
 		var payload = {
 			'action'	: 'swipp_autosuggest',
 			'term'		: autosuggest.val()
@@ -73,8 +90,10 @@ jQuery(document).ready(function($) {
 		swippApiCall(payload, function(data){
 			var data = $.parseJSON(data);
 			var suggestions = [];
+			suggestion_ids = [];
 			jQuery.each(data.response.searchOutput.terms.terms, function(i, e) {
 				suggestions.push({ label: e.name, value: e.name });
+				suggestion_ids[e.name] = e.id;
 			});
 			jQuery('#swipp_select_term').autocomplete('option', 'source', suggestions);
 		});
@@ -95,6 +114,7 @@ function swippAppendText(text) {
 		parent.tinyMCE.activeEditor.setContent(parent.tinyMCE.activeEditor.getContent() + text);
 	}
 	//Close window
+	jQuery('#swipp_term_check').removeAttr('data-term-id');
 	parent.jQuery("#TB_closeWindowButton").click();
 }
 
@@ -149,20 +169,8 @@ function swippCheckOrg(payload){
 /**
  * Swipp create widget
  */
-function swippCreateWidget(postId, termId, widgetType){
-	var payload = {
-		'action'			: 'swipp_create_widget',
-		'post_id'		: postId,
-		'term_id'		: termId,
-		'widget_type'	: widgetType
-	}
-	swippApiCall(payload, function(data){
-		data = jQuery.parseJSON(data);
-		//var widgetKey = 'widgetkey';
-		var widgetKey = data.response.widgetTermDetail.widgetKey;
-		swippAppendText('[swippjs type="' + widgetType + '" term_id="' + termId + '" widget_key="' + widgetKey + '"]');
-		jQuery('input[value="swipp_widget"]').parent().parent().find('td:nth-child(2)').find('textarea').val(data);
-	});
+function swippCreateWidget(term_id, widget_type, widget_key){
+	swippAppendText('[swippjs type="' + widget_type + '" term_id="' + term_id + '" widget_key="' + widget_key + '"]');
 }
 
 /**

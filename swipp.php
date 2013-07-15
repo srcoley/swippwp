@@ -34,6 +34,12 @@
 	function swipp_init() {
 		define('SWIPP_APP_ID', base64_encode('wp'));
 		define('SWIPP_APP_TOKEN', base64_encode('Jun62013'));
+
+		// These contants can be changed to switch between Staging and Production
+		define('SWIPP_API_URL', 'http://rest.swippeng.com');
+		define('SWIPP_SEARCH_URL', 'http://rest.swippeng.com');
+		define('SWIPP_INCLUDE_URL', 'http://swippplus.swippeng.com');
+
 		if(is_admin()) {
 			require_once('swipp-settings.php');
 			add_action('media_buttons_context', 'add_swipp_button');
@@ -60,6 +66,9 @@
 	add_action('init', 'swipp_init');
 
 
+	/*
+	 * Displays a notice on wp-admin to authenticate the Swipp plugin
+	 */
 	function swipp_warning() {
 		$options = get_option('swipp-settings'); 
 		if($options['swipp_user_guid_hidden']=="") {
@@ -152,24 +161,24 @@
 		$swipp_app_token		= str_replace('-', '', SWIPP_APP_TOKEN);
 
 		if($swipp_widget_type == '1') {
-			$output = "<link rel='stylesheet' type='text/css' href='http://swippplus.swippeng.com/widget/css/swippWidget.css' />";
+			$output = "<link rel='stylesheet' type='text/css' href='" . SWIPP_INCLUDE_URL . "/widget/css/swippWidget.css' />";
 		} else if($swipp_widget_type == '3') {
-			$output = "<link rel='stylesheet' href='http://swippplus.swippeng.com/widget_minimal/slider/css/slider.css' type='text/css'>";
-			$output .= "<link rel='stylesheet' type='text/css' href='http://swippplus.swippeng.com/widget_minimal/css/swippWidget.css' />";
+			$output = "<link rel='stylesheet' href='" . SWIPP_INCLUDE_URL . "/widget_minimal/slider/css/slider.css' type='text/css'>";
+			$output .= "<link rel='stylesheet' type='text/css' href='" . SWIPP_INCLUDE_URL . "/widget_minimal/css/swippWidget.css' />";
 		}
 		$output .= "<script>";
-		$output .= "var Swipp= Swipp || {}; Swipp.baseUri = 'http://swippplus.swippeng.com';";
+		$output .= "var Swipp= Swipp || {}; Swipp.baseUri = '" . SWIPP_INCLUDE_URL . "';";
 		$output .= "</script>";
 		$output .= "<script src='http://code.jquery.com/jquery-1.8.3.js'></script>";
 		if($swipp_widget_type == '1') {
-			$output .= "<script src='http://swippplus.swippeng.com/widget/js/swippWidget.js'></script>";
+			$output .= "<script src='" . SWIPP_INCLUDE_URL . "/widget/js/swippWidget.js'></script>";
 		} else if($swipp_widget_type == '3') {
-			$output .= "<script src='http://swippplus.swippeng.com/widget/slider/js/jquery.ui.core.min.js'></script>";
-			$output .= "<script src='http://swippplus.swippeng.com/widget/slider/js/jquery.ui.widget.min.js'></script>";
-			$output .= "<script src='http://swippplus.swippeng.com/widget/slider/js/jquery.ui.mouse.min.js'></script>";
-			$output .= "<script src='http://swippplus.swippeng.com/widget/slider/js/jquery.ui.slider.min.js'></script>";
-			$output .= "<script src='http://swippplus.swippeng.com/widget/slider/js/jquery.ui.touch-punch.min.js'></script>";
-			$output .= "<script src='http://swippplus.swippeng.com/widget_minimal/js/swippWidget.js'></script>";
+			$output .= "<script src='" . SWIPP_INCLUDE_URL . "/widget/slider/js/jquery.ui.core.min.js'></script>";
+			$output .= "<script src='" . SWIPP_INCLUDE_URL . "/widget/slider/js/jquery.ui.widget.min.js'></script>";
+			$output .= "<script src='" . SWIPP_INCLUDE_URL . "/widget/slider/js/jquery.ui.mouse.min.js'></script>";
+			$output .= "<script src='" . SWIPP_INCLUDE_URL . "/widget/slider/js/jquery.ui.slider.min.js'></script>";
+			$output .= "<script src='" . SWIPP_INCLUDE_URL . "/widget/slider/js/jquery.ui.touch-punch.min.js'></script>";
+			$output .= "<script src='" . SWIPP_INCLUDE_URL . "/widget_minimal/js/swippWidget.js'></script>";
 		}
 
 		$output .=	"<div termid='$swipp_term_id' ";
@@ -258,7 +267,7 @@
 			</p>
 			<h3 style="float: left; line-height: 35px;">Step 3:</h3>
 			<p style="float: left; margin-left: 20px;">
-				<input type="button" id="swipp_create_widget" class="button button-primary button-large" value="Insert Swipp" disabled="disabled" />
+				<input type="button" id="swipp_create_widget" class="button button-primary button-large" value="Insert Swipp" />
 			</p>
 			<p></p>
 			<div id="swippInfoDiv">
@@ -282,7 +291,7 @@
 	function swipp_autosuggest_callback() {
 		//echo "the term: " . $_POST['term'] . ':' . strlen($_POST['term']);
 		if(isset($_POST['term']) && $_POST['term'] != '' && strlen($_POST['term']) >= 1) {
-			$uri = 'http://rest.swippeng.com/search/autofill?query=' . urlencode($_POST['term']);
+			$uri		= SWIPP_SEARCH_URL . '/search/autofill?query=' . urlencode($_POST['term']);
 			$date		= gmdate(DATE_RFC822);
 			$header	= array("Date: $date");
 
@@ -308,9 +317,14 @@
 			}
 		}
 		if(array_key_exists('accountType', $payload) && array_key_exists('emailAddress', $payload) && array_key_exists('accountToken', $payload)) {
-			$uri		= "http://rest.swippeng.com/user/usersignup?appId=" . SWIPP_APP_ID . "&appToken=" . SWIPP_APP_TOKEN;
+			$uri		= SWIPP_API_URL . "/user/usersignup?appId=" . SWIPP_APP_ID . "&appToken=" . SWIPP_APP_TOKEN;
 			$date		= gmdate(DATE_RFC822);
 			$header	= array("Date: $date", "Content-Type: application/json");
+
+			if(preg_match('/^[\*]+?/', $payload['accountToken'])) {
+				$swipp_settings = get_option('swipp-settings');
+				$payload['accountToken'] = $swipp_settings['swipp_user_token'];
+			}
 
 			$body = json_encode(array(
 				"accountType" => $payload['accountType'],
@@ -318,7 +332,15 @@
 				"accountToken" => base64_encode($payload['accountToken'])
 			));
 
-			echo json_encode(curlRequest($uri, $header, "POST", $body));
+			$ret = curlRequest($uri, $header, "POST", $body);
+
+			if($ret['status'] == 200) {
+				$swipp_settings = get_option('swipp-settings');
+				$swipp_settings['swipp_user_token'] = base64_encode($payload['accountToken']);
+				update_option('swipp-settings', $swipp_settings);
+			}
+
+			echo json_encode($ret);
 		} else {
 			echo "Missing require parameters.";
 		}
@@ -339,9 +361,14 @@
 			}
 		}
 		if(array_key_exists('accountType', $payload) && array_key_exists('emailAddress', $payload) && array_key_exists('accountToken', $payload)) {
-			$uri			= "http://rest.swippeng.com/user/usersignin?appId=" . SWIPP_APP_ID . "&appToken=" . SWIPP_APP_TOKEN;
+			$uri			= SWIPP_API_URL . "/user/usersignin?appId=" . SWIPP_APP_ID . "&appToken=" . SWIPP_APP_TOKEN;
 			$date			= gmdate(DATE_RFC822);
 			$header		= array("Date: $date", "Content-Type: application/json");
+
+			if(preg_match('/^[\*]+?/', $payload['accountToken'])) {
+				$swipp_settings = get_option('swipp-settings');
+				$payload['accountToken'] = $swipp_settings['swipp_user_token'];
+			}
 
 			$body	= json_encode(array(
 				"accountType"	=> $payload['accountType'],
@@ -349,12 +376,17 @@
 				"accountToken" => base64_encode($payload['accountToken'])
 			));
 
+
 			$ret = curlRequest($uri, $header, "PUT", $body);
-			$swipp_settings = get_option('swipp-settings');
-			$swipp_settings['swipp_account_token_hidden'] = $ret['response']->signInOutput->accessToken;
-			$swipp_settings['swipp_user_guid_hidden'] = $ret['response']->signInOutput->userGuid;
-			update_option('swipp-settings', $swipp_settings);
-			echo json_encode($ret);
+			if($ret['status'] == 200) {
+				$swipp_settings = get_option('swipp-settings');
+				$swipp_settings['swipp_account_token_hidden'] = $ret['response']->signInOutput->accessToken;
+				$swipp_settings['swipp_user_guid_hidden'] = $ret['response']->signInOutput->userGuid;
+				update_option('swipp-settings', $swipp_settings);
+				echo json_encode($ret);
+			} else {
+				echo json_encode('Authentication failed');
+			}
 		} else {
 			echo "Missing required parameters.";
 		}
@@ -371,17 +403,17 @@
 		$user_guid			= base64_encode($swipp_settings['swipp_user_guid_hidden']);
 		$access_token		= base64_encode($swipp_settings['swipp_account_token_hidden']);
 		
-		$uri		= "http://rest.swippeng.com/widget/orgaccount?userGuid=" . $user_guid . "&accessToken=" . $access_token;
+		$uri		= SWIPP_API_URL . "/widget/orgaccount?userGuid=" . $user_guid . "&accessToken=" . $access_token;
 		$date		= gmdate(DATE_RFC822);
 		$header	= array("Date: $date", "Content-Type: application/json");
 
 		$ret = curlRequest($uri, $header, 'GET', null);
-		/*echo json_encode($ret);
-		die();*/
+
 		if(count($ret['response']->orgAccountDetails) <= 0) {
 			$body = json_encode(array("companyName" => get_bloginfo('name')));
 			$ret = curlRequest($uri, $header, 'POST', $body);
 		}
+		
 		$swipp_settings = get_option('swipp-settings');
 		$swipp_settings['swipp_org_id_hidden'] = $ret['response']->orgAccountDetails.id;
 		update_option('swipp-settings', $swipp_settings);
@@ -411,7 +443,7 @@
 		$user_guid			= base64_encode($swipp_settings['swipp_user_guid_hidden']);
 		$access_token		= base64_encode($swipp_settings['swipp_account_token_hidden']);
 		
-		$uri		= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/orgterm?userGuid=$user_guid&accessToken=$access_token";
+		$uri		= SWIPP_API_URL . "/widget/orgaccount/$org_id/orguser/orgterm?userGuid=$user_guid&accessToken=$access_token";
 		$date		= gmdate(DATE_RFC822);
 		$header	= array("Date: $date", "Content-Type: application/json");
 
@@ -425,100 +457,43 @@
 		die();
 	}
 
-
-	function swipp_create_widget_callback(){
-
+	function swipp_create_widget_callback() {
 		$payload = array();
 		$post_id;
 		$term_id;
 		$widget_type;
 
 		foreach($_POST as $k=>$v) {
-			if(isset($_POST[$k]) && $_POST[$k] != '' && $k != 'action' && $k != 'post_id' && $k != 'term_id' && $k != 'widget_type') {
+			if(isset($_POST[$k]) && $_POST[$k] != '' && $k != 'action' && $k != 'post_id') {
 				$payload[$k] = $v;
 			} else if($k == 'post_id' && is_numeric($v)) {
 				$post_id = $v;
-			} else if($k == 'term_id' && $v != '') {
-				$term_id = $v;
-			} else if($k == 'widget_type' && $v != '') {
-				$widget_type = $v;
 			}
 		}
 		
+		//echo json_encode($payload);
 
 		$swipp_settings	= get_option('swipp-settings');
 		$org_id				= $swipp_settings['swipp_org_id_hidden'];
 		$user_guid			= base64_encode($swipp_settings['swipp_user_guid_hidden']);
 		$access_token		= base64_encode($swipp_settings['swipp_account_token_hidden']);
 		
-		$uri		= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/widgetkey?userGuid=$user_guid&accessToken=$access_token";
+		$uri		= SWIPP_API_URL . "/widget/orgaccount/$org_id/orguser/widget?userGuid=$user_guid&accessToken=$access_token";
+		/*echo json_encode($uri);
+		die();*/
 		$date		= gmdate(DATE_RFC822);
 		$header	= array("Date: $date", "Content-Type: application/json");
 
-		$ret = curlRequest($uri, $header, 'POST', null);
+		$ret = curlRequest($uri, $header, 'POST', json_encode($payload));
 
 		if($ret['status'] != 200) {
-			echo json_encode(array('error_key' => 'REQUEST_FAILED 1'));
+			echo json_encode(array('ret' => $ret, 'error_key' => 'REQUEST_FAILED 1'));
 			die();
 		}
 
-		if(!isset($ret['response']->widgetKey) || $ret['response']->widgetKey == '') {
-			echo json_encode(array('error_key' => 'NO_WIDGET_KEY'));
-			die();
-		}
-
-		$widget_key		= $ret['response']->widgetKey;
-		$widget_key_64	= base64_encode($ret['response']->widgetKey);
-		$uri				= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/widget?userGuid=$user_guid&accessToken=$access_token";
-
-		$body				= json_encode(array(
-								'widgetKey' => $widget_key,
-								'type'		=> intval($widget_type)
-							));
-		
-		$ret2 = curlRequest($uri, $header, 'POST', $body);
-
-		if($ret2['status'] != 200) {
-			echo json_encode(array('error_key' => 'REQUEST_FAILED 2', 'response' => $ret2));
-			die();
-		}
-
-		if(!isset($ret2['response']->widgetId) || $ret2['response']->widgetId == '') {
-			echo json_encode(array('error_key' => 'NO_WIDGET_ID'));
-			die();
-		}
-
-		$widget_id			= $ret2['response']->widgetId;
-		$uri					= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/widget/$widget_id/term?userGuid=$user_guid&accessToken=$access_token";
-		$uri_with_term		= "http://rest.swippeng.com/widget/orgaccount/$org_id/orguser/widget/$widget_id/term?termId=$term_id&userGuid=$user_guid&accessToken=$access_token&appId=$widget_key_64";
-
-		$ret3 = curlRequest($uri_with_term, $header, 'PUT', null);
-
-		if($ret3['status'] != 200) {
-			echo json_encode(array('error_key' => 'REQUEST_FAILED 3'));
-			die();
-		}
-
-		$ret4 = curlRequest($uri, $header, 'GET', null);
-
-		if($ret4['status'] != 200) {
-			echo json_encode(array('error_key' => 'REQUEST_FAILED 4'));
-			die();
-		}
-
-		$ret4['response'] = (array) $ret4['response'];
-		$ret4['response']['widgetTermDetail'] = (array) $ret4['response']['widgetTermDetail'];
-		$ret4['response']['widgetTermDetail']['termData'] = (array) $ret4['response']['widgetTermDetail']['termData'];
-		$ret4['response']['widgetTermDetail']['termData']['swippTerm'] = (array) $ret4['response']['widgetTermDetail']['termData']['swippTerm'];
-		$ret4['response']['widgetTermDetail']['widgetKey'] = $widget_key;
-		$term_detail = $ret4['response']['widgetTermDetail']['termData']['swippTerm'];
-
-		update_post_meta($post_id, 'swipp_widget', json_encode($ret4));
-
-		echo json_encode($ret4);
+		echo json_encode($ret);
 		die();
 	}
-
 
 
 	/********************

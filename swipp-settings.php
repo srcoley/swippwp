@@ -22,11 +22,6 @@
 			
 		$output = array();  
 			
-		// put together the output array   
-		//$output = swipp_get_or_add_option('swipp_user_email', $output);
-		//$output = swipp_get_or_add_option('swipp_user_token', $output);
-		//$output = swipp_get_or_add_option('swipp_account_email', $output);
-
 		$output['swipp_page_title']		= __( 'Swipp Settings','swipp_textdomain'); // the settings page title  
 		$output['swipp_page_sections']	= ''; // the setting section  
 		$output['swipp_page_fields']		= ''; // the setting fields  
@@ -117,14 +112,14 @@
 	
 	function swipp_user_token_callback($args) { 
 		$options = get_option('swipp-settings'); 
-		$html = '<input type="password" id="swipp_user_token" name="swipp-settings[swipp_user_token]" value="'.$options['swipp_user_token'].'" />';  
+		$html = '<input type="password" id="swipp_user_token" value="" />';
 		$html .= '<label for="swipp_user_token"> '  . $args[0] . '</label>';  
 		echo $html; 
 	}
 
 	function swipp_account_token_hidden_callback($args) { 
 		$options = get_option('swipp-settings'); 
-		if($options['swipp_account_token_hidden'] == '') {
+		if($options['swipp_account_token_hidden'] == '' || !isset($options['swipp_account_token_hidden'])) {
 			$html = '<input type="hidden" id="swipp_account_token_hidden" name="swipp-settings[swipp_account_token_hidden]" value="'.$options['swipp_account_token_hidden'].'" />';  
 			$html .= '<input type="button" id="swipp_sign_up" class="button" value="Sign Up / Sign In" />';
 		} else {
@@ -217,6 +212,13 @@
 	}
 
 
+	function password_placeholder($pass) {
+		$output = '';
+		for($i=0;$i <= strlen($pass);$i++) {
+			$output .= '*';
+		}
+		return $output;
+	}
 
 
 	/**
@@ -227,14 +229,20 @@
 	function swipp_settings_page_fn() {  
 	// get the settings sections array  
 		 $settings_output = swipp_get_settings();  
+		 $swipp_settings = get_option('swipp-settings');
 	?>  
 		<div class="wrap">
 			<div class="icon32" id="icon-options-general"></div>  
 			<h2><?php echo $settings_output['swipp_page_title']; ?></h2>
 
 			<?php settings_errors(); ?>
+
+			<?php if(isset($swipp_settings['swipp_user_guid_hidden']) && $swipp_settings['swipp_user_guid_hidden'] != '') : ?>
+				<div id="setting-updated-settings_updated" class="updated settings-updated below-h2"> 
+					<p><strong>You are Authenticated.</strong></p>
+				</div>
+			<?php endif; ?>
 			 
-			<!--<form action="admin.php?page=<?php echo SWIPP_PAGE_BASENAME; ?>" method="post">-->
 			<form action="options.php" method="post">
 				<?php settings_fields('swipp-settings'); ?> 
             <?php do_settings_sections('swipp-settings'); ?>          

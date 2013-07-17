@@ -65,6 +65,14 @@
 	}
 	add_action('init', 'swipp_init');
 
+	register_deactivation_hook( __FILE__, 'swipp_deactivate' );
+
+	/*
+	 * Deactivation of the plugin removes swipp settings
+	 */
+	function swipp_deactivate() {
+		delete_option('swipp-settings');
+	}
 
 	/*
 	 * Displays a notice on wp-admin to authenticate the Swipp plugin
